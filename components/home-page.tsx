@@ -64,13 +64,6 @@ export function HomePage({ onLogout }: HomePageProps) {
     return days
   }
 
-  const getStatusIcon = (habit: Habit, date: string) => {
-    const completion = habit.completions[date]
-    if (completion === true) return "✅"
-    if (completion === false) return "❌"
-    return "⚪️"
-  }
-
   const getHabitProgress = (habit: Habit) => {
     const last7Days = getLast7Days()
     const completedDays = last7Days.filter((date) => habit.completions[date] === true).length

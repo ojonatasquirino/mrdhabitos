@@ -191,10 +191,11 @@ export function AnalysisPage({ habits, onBack }: AnalysisPageProps) {
                       border: "1px solid hsl(var(--border))",
                       borderRadius: "8px",
                     }}
-                    formatter={(value: number, name: string, props: any) => [
-                      `${value}% (${props.payload.completed}/${props.payload.total})`,
-                      "Completados",
-                    ]}
+                    formatter={(
+                      value: number,
+                      name: string,
+                      props: { payload: { completed: number; total: number } },
+                    ) => [`${value}% (${props.payload.completed}/${props.payload.total})`, "Completados"]}
                   />
                   <Bar dataKey="performance" fill="#f97316" radius={[4, 4, 0, 0]} />
                 </BarChart>
