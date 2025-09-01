@@ -324,7 +324,7 @@ export function HabitDetailPage({ habit, onUpdate, onBack }: HabitDetailPageProp
                         border: "1px solid hsl(var(--border))",
                         borderRadius: "8px",
                       }}
-                      formatter={(value: number | null) => [
+                      formatter={(value: number | null, name: string, props: any) => [
                         value === 100 ? "Feito" : value === 0 ? "Não feito" : "Não marcado",
                         "Status",
                       ]}

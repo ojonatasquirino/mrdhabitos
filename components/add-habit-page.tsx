@@ -61,7 +61,7 @@ export function AddHabitPage({ onAdd, onCancel }: AddHabitPageProps) {
                   className="min-h-[48px] text-base"
                 />
                 <p className="text-xs text-muted-foreground">
-                  Dica: Seja específico e comece pequeno. {'Ler 1 página" é melhor que "Ler mais'}.
+                  Dica: Seja específico e comece pequeno. {'Ler 1 página" é melhor que "Ler mais"'}.
                 </p>
               </div>
               <div className="flex flex-col sm:flex-row gap-3">
