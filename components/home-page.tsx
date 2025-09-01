@@ -54,19 +54,28 @@ export function HomePage({ onLogout }: HomePageProps) {
     saveHabits(habits.map((habit) => (habit.id === updatedHabit.id ? updatedHabit : habit)))
   }
 
-  const getLast7Days = () => {
+  const getWeekDays = () => {
+    const today = new Date()
+    const currentDay = today.getDay() // 0 = domingo, 1 = segunda, etc.
     const days = []
-    for (let i = 6; i >= 0; i--) {
-      const date = new Date()
-      date.setDate(date.getDate() - i)
+
+    // Calcular o domingo da semana atual
+    const sunday = new Date(today)
+    sunday.setDate(today.getDate() - currentDay)
+
+    // Gerar os 7 dias da semana começando no domingo
+    for (let i = 0; i < 7; i++) {
+      const date = new Date(sunday)
+      date.setDate(sunday.getDate() + i)
       days.push(date.toISOString().split("T")[0])
     }
+
     return days
   }
 
   const getHabitProgress = (habit: Habit) => {
-    const last7Days = getLast7Days()
-    const completedDays = last7Days.filter((date) => habit.completions[date] === true).length
+    const weekDays = getWeekDays()
+    const completedDays = weekDays.filter((date) => habit.completions[date] === true).length
     return { completed: completedDays, total: 7, percentage: (completedDays / 7) * 100 }
   }
 
@@ -133,10 +142,9 @@ export function HomePage({ onLogout }: HomePageProps) {
     )
   }
 
-  const getDayName = (dateString: string) => {
-    const date = new Date(dateString + "T00:00:00")
+  const getDayName = (index: number) => {
     const dayNames = ["D", "S", "T", "Q", "Q", "S", "S"]
-    return dayNames[date.getDay()]
+    return dayNames[index]
   }
 
   if (currentPage === "add") {
@@ -211,7 +219,7 @@ export function HomePage({ onLogout }: HomePageProps) {
             <>
               {habits.map((habit) => {
                 const progress = getHabitProgress(habit)
-                const last7Days = getLast7Days()
+                const weekDays = getWeekDays()
 
                 return (
                   <Card key={habit.id} className="floating-card gradient-card border-0 overflow-hidden">
@@ -241,8 +249,8 @@ export function HomePage({ onLogout }: HomePageProps) {
                     <CardContent className="pt-0">
                       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                         <div className="flex gap-2 sm:gap-3 justify-center sm:justify-start overflow-x-auto pb-1">
-                          {last7Days.map((date) => (
-                            <HabitDayIndicator key={date} habit={habit} date={date} dayName={getDayName(date)} />
+                          {weekDays.map((date, index) => (
+                            <HabitDayIndicator key={date} habit={habit} date={date} dayName={getDayName(index)} />
                           ))}
                         </div>
                         <Button
