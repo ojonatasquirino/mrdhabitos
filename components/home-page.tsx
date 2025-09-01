@@ -16,10 +16,9 @@ interface Habit {
 
 export interface HomePageProps {
   onLogout: () => void
-  currentUser: string
 }
 
-export function HomePage({ onLogout, currentUser }: HomePageProps) {
+export function HomePage({ onLogout }: HomePageProps) {
   const [habits, setHabits] = useState<Habit[]>([])
   const [currentPage, setCurrentPage] = useState<"home" | "add" | "detail" | "analysis">("home")
   const [selectedHabitId, setSelectedHabitId] = useState<string | null>(null)

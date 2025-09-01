@@ -41,5 +41,5 @@ export default function App() {
     return <LoginPage onLogin={handleLogin} />
   }
 
-  return <HomePage onLogout={handleLogout} currentUser={currentUser} />
+  return <HomePage onLogout={handleLogout} />
 }
