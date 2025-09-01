@@ -1,39 +1,46 @@
-"use client"
+"use client";
 
-import type React from "react"
+import type React from "react";
 
-import { useState } from "react"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Label } from "@/components/ui/label"
-import { ArrowLeft, Plus } from "lucide-react"
+import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Label } from "@/components/ui/label";
+import { ArrowLeft, Plus } from "lucide-react";
 
 interface AddHabitPageProps {
-  onAdd: (name: string) => void
-  onCancel: () => void
+  onAdd: (name: string) => void;
+  onCancel: () => void;
 }
 
 export function AddHabitPage({ onAdd, onCancel }: AddHabitPageProps) {
-  const [habitName, setHabitName] = useState("")
+  const [habitName, setHabitName] = useState("");
 
   const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
+    e.preventDefault();
     if (habitName.trim()) {
-      onAdd(habitName.trim())
+      onAdd(habitName.trim());
     }
-  }
+  };
 
   return (
     <div className="min-h-screen bg-background p-3 sm:p-4">
       <div className="max-w-md mx-auto">
         <div className="flex items-center gap-3 mb-6">
-          <Button variant="ghost" size="sm" onClick={onCancel} className="min-h-[44px] min-w-[44px] p-2">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={onCancel}
+            className="min-h-[44px] min-w-[44px] p-2"
+          >
             <ArrowLeft className="w-5 h-5" />
           </Button>
           <div>
             <h1 className="text-xl sm:text-2xl font-bold">Novo Hábito</h1>
-            <p className="text-sm text-muted-foreground">Crie um novo hábito para acompanhar</p>
+            <p className="text-sm text-muted-foreground">
+              Crie um novo hábito para acompanhar
+            </p>
           </div>
         </div>
 
@@ -61,11 +68,16 @@ export function AddHabitPage({ onAdd, onCancel }: AddHabitPageProps) {
                   className="min-h-[48px] text-base"
                 />
                 <p className="text-xs text-muted-foreground">
-                  Dica: Seja específico e comece pequeno. &quot;Ler 1 página&quot; é melhor que &quot;Ler mais&quot;.
+                  Dica: Seja específico e comece pequeno. Ler 1 página é melhor
+                  que Ler mais.
                 </p>
               </div>
               <div className="flex flex-col sm:flex-row gap-3">
-                <Button type="submit" className="flex-1 min-h-[48px] shadow-lg" disabled={!habitName.trim()}>
+                <Button
+                  type="submit"
+                  className="flex-1 min-h-[48px] shadow-lg"
+                  disabled={!habitName.trim()}
+                >
                   <Plus className="w-4 h-4 mr-2" />
                   Cadastrar Hábito
                 </Button>
@@ -84,5 +96,5 @@ export function AddHabitPage({ onAdd, onCancel }: AddHabitPageProps) {
         </Card>
       </div>
     </div>
-  )
+  );
 }
