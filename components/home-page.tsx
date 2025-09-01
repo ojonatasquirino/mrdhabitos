@@ -14,7 +14,7 @@ interface Habit {
   completions: Record<string, boolean> // date string -> completed
 }
 
-interface HomePageProps {
+export interface HomePageProps {
   onLogout: () => void
   currentUser: string
 }
