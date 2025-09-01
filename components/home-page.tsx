@@ -112,12 +112,12 @@ export function HomePage({ onLogout }: HomePageProps) {
     let icon = "○"
 
     if (completion === true) {
-      bgColor = "bg-primary"
-      textColor = "text-primary-foreground"
+      bgColor = "bg-green-500"
+      textColor = "text-white"
       icon = "✓"
     } else if (completion === false) {
-      bgColor = "bg-destructive/20"
-      textColor = "text-destructive"
+      bgColor = "bg-red-500"
+      textColor = "text-white"
       icon = "✕"
     }
 
@@ -131,6 +131,12 @@ export function HomePage({ onLogout }: HomePageProps) {
         </div>
       </div>
     )
+  }
+
+  const getDayName = (dateString: string) => {
+    const date = new Date(dateString + "T00:00:00")
+    const dayNames = ["D", "S", "T", "Q", "Q", "S", "S"]
+    return dayNames[date.getDay()]
   }
 
   if (currentPage === "add") {
@@ -206,7 +212,6 @@ export function HomePage({ onLogout }: HomePageProps) {
               {habits.map((habit) => {
                 const progress = getHabitProgress(habit)
                 const last7Days = getLast7Days()
-                const dayNames = ["D", "S", "T", "Q", "Q", "S", "S"]
 
                 return (
                   <Card key={habit.id} className="floating-card gradient-card border-0 overflow-hidden">
@@ -236,8 +241,8 @@ export function HomePage({ onLogout }: HomePageProps) {
                     <CardContent className="pt-0">
                       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                         <div className="flex gap-2 sm:gap-3 justify-center sm:justify-start overflow-x-auto pb-1">
-                          {last7Days.map((date, index) => (
-                            <HabitDayIndicator key={date} habit={habit} date={date} dayName={dayNames[index]} />
+                          {last7Days.map((date) => (
+                            <HabitDayIndicator key={date} habit={habit} date={date} dayName={getDayName(date)} />
                           ))}
                         </div>
                         <Button
