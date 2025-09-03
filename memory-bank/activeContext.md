@@ -52,6 +52,7 @@ O projeto **MRD Hábitos** está **funcional e completo** com todas as funcional
 interface Habit {
   id: string                    // Timestamp como ID
   name: string                  // Nome descritivo
+  icon: string                  // Emoji para identificação visual
   completions: Record<string, boolean> // data -> status
 }
 ```
@@ -59,8 +60,12 @@ interface Habit {
 ## Contexto de Desenvolvimento
 
 ### Últimas Implementações
+- **Sistema de ícones para hábitos**: Seleção visual de ícones para melhor identificação
+- **Componente IconSelector**: Interface para escolha de ícones com 100+ opções
+- **Migração de dados**: Atualização automática de hábitos existentes com ícones padrão
 - **Sistema de temas**: Suporte automático ao tema do dispositivo
 - **ThemeProvider**: Detecção automática de preferência do sistema
+- **Detecção dinâmica de tema**: Atualização automática quando o tema do dispositivo muda
 - **Correção de contraste**: Melhoria na legibilidade dos componentes UI
 - **Sistema completo de métricas**: Streaks, taxas de sucesso, análise semanal
 - **Página de análise**: Gráficos com Recharts para visualização

@@ -16,10 +16,12 @@ O projeto **MRD Hábitos** está **100% funcional** com todas as funcionalidades
 
 ### 2. Gestão de Hábitos
 - ✅ Criação de novos hábitos
+- ✅ Seleção de ícones para identificação visual
 - ✅ Listagem de hábitos na página principal
 - ✅ Exclusão de hábitos
 - ✅ Edição de hábitos (através da página de detalhes)
 - ✅ Validação de entrada de dados
+- ✅ Migração automática de dados existentes
 
 ### 3. Rastreamento Diário
 - ✅ Marcação de conclusão/fracasso por dia
@@ -79,6 +81,7 @@ O projeto **MRD Hábitos** está **100% funcional** com todas as funcionalidades
 - ✅ `Input`: Input com styling consistente
 - ✅ `Label`: Label para formulários
 - ✅ `Tabs`: Sistema de tabs para navegação
+- ✅ `IconSelector`: Seletor de ícones com 100+ opções
 
 ### Funcionalidades Técnicas
 - ✅ TypeScript com tipagem completa

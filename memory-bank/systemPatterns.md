@@ -15,6 +15,7 @@ components/
 ├── habit-detail-page.tsx # Detalhes e métricas de um hábito
 ├── analysis-page.tsx  # Análise geral de desempenho
 ├── login-page.tsx     # Autenticação (login/cadastro)
+├── icon-selector.tsx  # Seletor de ícones para hábitos
 └── ui/               # Componentes base do Shadcn/ui
     ├── button.tsx
     ├── card.tsx
@@ -43,6 +44,7 @@ localStorage.setItem("mrd-users", JSON.stringify(users))
 interface Habit {
   id: string
   name: string
+  icon: string
   completions: Record<string, boolean> // date -> completed
 }
 
@@ -67,7 +69,8 @@ Login → Home → [Add Habit | Habit Detail | Analysis]
 ## Padrões de UI/UX
 
 ### 1. Design System
-- **Tema**: Completamente branco com acentos pretos
+- **Tema**: Suporte automático a tema claro/escuro com detecção do sistema
+- **ThemeProvider**: Gerenciamento dinâmico de tema com listener para mudanças do sistema
 - **Componentes**: Shadcn/ui com customizações
 - **Responsividade**: Mobile-first com breakpoints
 - **Animações**: Transições suaves e hover effects
@@ -104,7 +107,7 @@ const saveHabits = (newHabits: Habit[]) => {
   localStorage.setItem("minimo-ridiculo-habits", JSON.stringify(newHabits))
 }
 
-const addHabit = (name: string) => { /* ... */ }
+const addHabit = (name: string, icon: string = "🎯") => { /* ... */ }
 const deleteHabit = (id: string) => { /* ... */ }
 const updateHabit = (updatedHabit: Habit) => { /* ... */ }
 ```
@@ -149,6 +152,31 @@ const getWeekDays = () => {
 - **HTML semântico**: Uso correto de tags
 - **Labels associados**: Inputs com labels apropriados
 - **Estrutura lógica**: Navegação intuitiva
+
+## Padrões de Tema
+
+### 1. ThemeProvider
+```typescript
+// Gerenciamento dinâmico de tema
+const [theme, setTheme] = useState<Theme>("system")
+
+// Detecção automática de mudanças no sistema
+useEffect(() => {
+  if (theme === "system") {
+    const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)")
+    const handleSystemThemeChange = () => applyTheme("system")
+    
+    mediaQuery.addEventListener("change", handleSystemThemeChange)
+    return () => mediaQuery.removeEventListener("change", handleSystemThemeChange)
+  }
+}, [theme])
+```
+
+### 2. Aplicação de Tema
+- **Detecção automática**: Escuta mudanças na preferência do sistema
+- **Aplicação dinâmica**: Atualiza classes CSS em tempo real
+- **Persistência**: Salva preferência no localStorage
+- **Fallback**: Sistema como padrão com detecção automática
 
 ## Padrões de Manutenibilidade
 
