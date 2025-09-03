@@ -4,7 +4,7 @@
 @custom-variant dark (&:is(.dark *));
 
 :root {
-  /* Tornando todo o sistema completamente branco */
+  /* Tema claro (padrão) */
   --background: #ffffff;
   --foreground: #000000;
   --card: #ffffff;
@@ -38,6 +38,42 @@
   --sidebar-accent-foreground: #000000;
   --sidebar-border: #e5e5e5;
   --sidebar-ring: rgba(0, 0, 0, 0.1);
+}
+
+.dark {
+  /* Tema escuro */
+  --background: #0a0a0a;
+  --foreground: #fafafa;
+  --card: #0a0a0a;
+  --card-foreground: #fafafa;
+  --popover: #0a0a0a;
+  --popover-foreground: #fafafa;
+  --primary: #fafafa;
+  --primary-foreground: #0a0a0a;
+  --secondary: #0a0a0a;
+  --secondary-foreground: #fafafa;
+  --muted: #0a0a0a;
+  --muted-foreground: #a3a3a3;
+  --accent: #0a0a0a;
+  --accent-foreground: #fafafa;
+  --destructive: #dc2626;
+  --destructive-foreground: #fafafa;
+  --border: #262626;
+  --input: #0a0a0a;
+  --ring: rgba(250, 250, 250, 0.1);
+  --chart-1: #fafafa;
+  --chart-2: #a3a3a3;
+  --chart-3: #737373;
+  --chart-4: #404040;
+  --chart-5: #262626;
+  --sidebar: #0a0a0a;
+  --sidebar-foreground: #fafafa;
+  --sidebar-primary: #fafafa;
+  --sidebar-primary-foreground: #0a0a0a;
+  --sidebar-accent: #0a0a0a;
+  --sidebar-accent-foreground: #fafafa;
+  --sidebar-border: #262626;
+  --sidebar-ring: rgba(250, 250, 250, 0.1);
 }
 
 /* Removendo completamente o modo dark */
@@ -88,19 +124,19 @@
     @apply border-border outline-ring/50;
   }
   body {
-    @apply bg-white text-black font-sans;
+    @apply bg-background text-foreground font-sans;
   }
 }
 
-/* Simplificando utilitários para tema totalmente branco */
+/* Utilitários adaptáveis ao tema */
 @layer utilities {
   .gradient-card {
-    background: #ffffff;
+    background: var(--card);
   }
 
   .floating-card {
-    background: #ffffff;
-    border: 1px solid #e5e5e5;
+    background: var(--card);
+    border: 1px solid var(--border);
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   }
@@ -108,6 +144,14 @@
   .floating-card:hover {
     transform: translateY(-1px);
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  }
+
+  .dark .floating-card {
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+  }
+
+  .dark .floating-card:hover {
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.4);
   }
 
   .progress-ring {
