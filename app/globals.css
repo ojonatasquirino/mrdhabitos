@@ -38,42 +38,46 @@
   --sidebar-accent-foreground: #000000;
   --sidebar-border: #e5e5e5;
   --sidebar-ring: rgba(0, 0, 0, 0.1);
+  --chart-text: #000000;
+  --chart-text-secondary: #666666;
 }
 
 .dark {
-  /* Tema escuro */
+  /* Tema escuro com melhor contraste */
   --background: #0a0a0a;
-  --foreground: #fafafa;
-  --card: #0a0a0a;
-  --card-foreground: #fafafa;
-  --popover: #0a0a0a;
-  --popover-foreground: #fafafa;
-  --primary: #fafafa;
+  --foreground: #ffffff;
+  --card: #1a1a1a;
+  --card-foreground: #ffffff;
+  --popover: #1a1a1a;
+  --popover-foreground: #ffffff;
+  --primary: #ffffff;
   --primary-foreground: #0a0a0a;
-  --secondary: #0a0a0a;
-  --secondary-foreground: #fafafa;
-  --muted: #0a0a0a;
-  --muted-foreground: #a3a3a3;
-  --accent: #0a0a0a;
-  --accent-foreground: #fafafa;
-  --destructive: #dc2626;
-  --destructive-foreground: #fafafa;
-  --border: #262626;
-  --input: #0a0a0a;
-  --ring: rgba(250, 250, 250, 0.1);
-  --chart-1: #fafafa;
-  --chart-2: #a3a3a3;
-  --chart-3: #737373;
-  --chart-4: #404040;
-  --chart-5: #262626;
+  --secondary: #1a1a1a;
+  --secondary-foreground: #ffffff;
+  --muted: #1a1a1a;
+  --muted-foreground: #d1d5db;
+  --accent: #1a1a1a;
+  --accent-foreground: #ffffff;
+  --destructive: #ef4444;
+  --destructive-foreground: #ffffff;
+  --border: #374151;
+  --input: #1a1a1a;
+  --ring: rgba(255, 255, 255, 0.2);
+  --chart-1: #ffffff;
+  --chart-2: #d1d5db;
+  --chart-3: #9ca3af;
+  --chart-4: #6b7280;
+  --chart-5: #374151;
   --sidebar: #0a0a0a;
-  --sidebar-foreground: #fafafa;
-  --sidebar-primary: #fafafa;
+  --sidebar-foreground: #ffffff;
+  --sidebar-primary: #ffffff;
   --sidebar-primary-foreground: #0a0a0a;
-  --sidebar-accent: #0a0a0a;
-  --sidebar-accent-foreground: #fafafa;
-  --sidebar-border: #262626;
-  --sidebar-ring: rgba(250, 250, 250, 0.1);
+  --sidebar-accent: #1a1a1a;
+  --sidebar-accent-foreground: #ffffff;
+  --sidebar-border: #374151;
+  --sidebar-ring: rgba(255, 255, 255, 0.2);
+  --chart-text: #ffffff;
+  --chart-text-secondary: #d1d5db;
 }
 
 /* Removendo completamente o modo dark */
@@ -117,6 +121,8 @@
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
+  --color-chart-text: var(--chart-text);
+  --color-chart-text-secondary: var(--chart-text-secondary);
 }
 
 @layer base {
@@ -147,11 +153,11 @@
   }
 
   .dark .floating-card {
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.05);
   }
 
   .dark .floating-card:hover {
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.4);
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.1);
   }
 
   .progress-ring {
