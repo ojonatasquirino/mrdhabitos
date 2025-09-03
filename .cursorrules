@@ -1,0 +1,155 @@
+# MRD Hábitos - Project Intelligence
+
+## Visão Geral do Projeto
+MRD (Mínimo Ridículo Diário) é um rastreador de hábitos minimalista baseado na filosofia de "fazer o mínimo ridículo diariamente". O projeto está 100% funcional e deployado na Vercel.
+
+## Filosofia Central
+- **Mínimo Ridículo**: Tarefas tão pequenas que seria ridículo não executar
+- **Consistência > Intensidade**: Foco na regularidade, não na quantidade
+- **Simplicidade**: Interface limpa sem distrações
+- **Progresso Visual**: Feedback claro sobre o desempenho
+
+## Stack Tecnológico
+- **Frontend**: Next.js 15, React 19, TypeScript
+- **Styling**: Tailwind CSS v4, Shadcn/ui
+- **Charts**: Recharts para visualizações
+- **Storage**: localStorage (sem backend)
+- **Deploy**: Vercel
+
+## Padrões Arquiteturais
+
+### Estrutura de Componentes
+```
+app/page.tsx → HomePage → [AddHabitPage | HabitDetailPage | AnalysisPage]
+```
+
+### Gerenciamento de Estado
+- **Estado local** em cada componente principal
+- **localStorage** para persistência
+- **Props drilling** controlado para comunicação
+
+### Estrutura de Dados
+```typescript
+interface Habit {
+  id: string
+  name: string
+  completions: Record<string, boolean> // date -> completed
+}
+```
+
+## Padrões de Desenvolvimento
+
+### 1. Componentes
+- Todos os componentes são "use client"
+- Props tipadas com interfaces TypeScript
+- Estado local com useState/useEffect
+- Componentes funcionais com hooks
+
+### 2. Styling
+- Suporte automático ao tema do dispositivo (claro/escuro)
+- Detecção automática da preferência do sistema
+- Classes utilitárias do Tailwind com variáveis CSS
+- Animações suaves com CSS transitions
+- Responsividade mobile-first
+
+### 3. Navegação
+- Sistema de páginas com `currentPage` state
+- Navegação programática entre componentes
+- Páginas: "home", "add", "detail", "analysis"
+
+## Funcionalidades Implementadas
+
+### Core Features ✅
+1. **Autenticação**: Login/cadastro com localStorage
+2. **Gestão de Hábitos**: CRUD completo
+3. **Rastreamento**: Marcação diária de conclusão
+4. **Métricas**: Streaks, taxas de sucesso, análise
+5. **Visualização**: Gráficos e progresso visual
+6. **Responsividade**: Mobile e desktop
+
+### Páginas Principais
+- **HomePage**: Lista de hábitos com progresso semanal
+- **AddHabitPage**: Formulário de criação
+- **HabitDetailPage**: Métricas individuais e calendário
+- **AnalysisPage**: Análise geral de desempenho
+- **LoginPage**: Autenticação com tabs
+
+## Padrões de UI/UX
+
+### Design System
+- **Temas**: Claro (branco) e escuro (preto) com detecção automática
+- **Cores**: Adaptáveis ao tema com variáveis CSS
+- **Tipografia**: Geist Sans/Mono
+- **Componentes**: Shadcn/ui customizados
+- **Animações**: Transições suaves (0.2s-0.3s)
+
+### Interações
+- **Cards flutuantes**: Hover com elevação
+- **Progresso circular**: SVG customizado
+- **Indicadores de dia**: Círculos coloridos
+- **Botões**: Sempre com ícones e texto
+
+### Responsividade
+- **Mobile-first**: Design baseado em mobile
+- **Breakpoints**: sm, md, lg
+- **Touch-friendly**: Botões mínimos de 44px
+- **Layout**: Flexbox/Grid responsivo
+
+## Limitações Conhecidas
+
+### Técnicas
+- **Dados locais**: Sem sincronização entre dispositivos
+- **Segurança**: Senhas em texto plano
+- **Backup**: Sem sistema automático
+- **Escalabilidade**: Limitado ao localStorage
+
+### Funcionais
+- **Usuário único**: Um usuário por dispositivo
+- **Sem API**: Sem backend para múltiplos usuários
+- **Sem notificações**: Sem lembretes automáticos
+
+## Padrões de Código
+
+### TypeScript
+- Tipagem completa em toda aplicação
+- Interfaces para props e dados
+- Strict mode habilitado
+- Path mapping com "@/*"
+
+### React
+- Hooks para gerenciamento de estado
+- useEffect para side effects
+- Props drilling controlado
+- Componentes funcionais
+
+### CSS
+- Tailwind classes utilitárias
+- Variáveis CSS customizadas
+- Animações com transitions
+- Responsive design
+
+## Comandos Úteis
+```bash
+npm run dev      # Desenvolvimento com Turbopack
+npm run build    # Build de produção
+npm run start    # Servidor de produção
+npm run lint     # Verificação de código
+```
+
+## URLs Importantes
+- **Produção**: https://mrdhabitos.vercel.app/
+- **Repositório**: https://github.com/ojonatasquirino/mrdhabitos
+
+## Próximos Passos Sugeridos
+1. **Segurança**: Implementar hash de senhas
+2. **Backup**: Sistema de exportação de dados
+3. **Notificações**: Lembretes diários
+4. **PWA**: Funcionalidade offline
+5. **Backend**: API para sincronização
+
+## Notas Importantes
+- O projeto está **completo e funcional**
+- Todas as funcionalidades core estão implementadas
+- Foco na simplicidade e usabilidade
+- Manter consistência com a filosofia do "mínimo ridículo"
+- Priorizar UX sobre features complexas

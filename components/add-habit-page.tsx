@@ -8,19 +8,21 @@ import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Label } from "@/components/ui/label"
 import { ArrowLeft, Plus } from "lucide-react"
+import { IconSelector } from "@/components/icon-selector"
 
 interface AddHabitPageProps {
-  onAdd: (name: string) => void
+  onAdd: (name: string, icon: string) => void
   onCancel: () => void
 }
 
 export function AddHabitPage({ onAdd, onCancel }: AddHabitPageProps) {
   const [habitName, setHabitName] = useState("")
+  const [selectedIcon, setSelectedIcon] = useState("🎯")
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     if (habitName.trim()) {
-      onAdd(habitName.trim())
+      onAdd(habitName.trim(), selectedIcon)
     }
   }
 
@@ -64,6 +66,8 @@ export function AddHabitPage({ onAdd, onCancel }: AddHabitPageProps) {
                   Dica: Seja específico e comece pequeno. {'Ler 1 página" é melhor que "Ler mais"'}.
                 </p>
               </div>
+              
+              <IconSelector selectedIcon={selectedIcon} onIconSelect={setSelectedIcon} />
               <div className="flex flex-col sm:flex-row gap-3">
                 <Button type="submit" className="flex-1 min-h-[48px] shadow-lg" disabled={!habitName.trim()}>
                   <Plus className="w-4 h-4 mr-2" />

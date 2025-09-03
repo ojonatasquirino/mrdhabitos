@@ -8,6 +8,7 @@ import { TrendingUp, Target, Calendar, Award } from "lucide-react"
 interface Habit {
   id: string
   name: string
+  icon: string
   completions: Record<string, boolean>
 }
 
@@ -85,13 +86,15 @@ export function AnalysisPage({ habits, onBack }: AnalysisPageProps) {
 
   const getLast7Days = () => {
     const days = []
-    const dayNames = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"]
+    const dayNamesShort = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"]
+    const dayNamesFull = ["Domingo", "Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado"]
 
     for (let i = 6; i >= 0; i--) {
       const date = new Date()
       date.setDate(date.getDate() - i)
       const dateString = date.toISOString().split("T")[0]
-      const dayName = dayNames[date.getDay()]
+      const dayNameShort = dayNamesShort[date.getDay()]
+      const dayNameFull = dayNamesFull[date.getDay()]
 
       // Calculate performance (percentage of habits completed)
       const totalHabits = habits.length
@@ -99,7 +102,8 @@ export function AnalysisPage({ habits, onBack }: AnalysisPageProps) {
       const performance = totalHabits > 0 ? Math.round((completedHabits / totalHabits) * 100) : 0
 
       days.push({
-        day: dayName,
+        day: dayNameShort,
+        dayFull: dayNameFull,
         performance,
         completed: completedHabits,
         total: totalHabits,
@@ -172,13 +176,13 @@ export function AnalysisPage({ habits, onBack }: AnalysisPageProps) {
                   <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
                   <XAxis
                     dataKey="day"
-                    stroke="hsl(var(--muted-foreground))"
+                    stroke="var(--chart-text)"
                     fontSize={12}
                     tickLine={false}
                     axisLine={false}
                   />
                   <YAxis
-                    stroke="hsl(var(--muted-foreground))"
+                    stroke="var(--chart-text)"
                     fontSize={12}
                     tickLine={false}
                     axisLine={false}
@@ -187,18 +191,34 @@ export function AnalysisPage({ habits, onBack }: AnalysisPageProps) {
                   />
                   <Tooltip
                     contentStyle={{
-                      backgroundColor: "hsl(var(--card))",
-                      border: "1px solid hsl(var(--border))",
+                      backgroundColor: "var(--card)",
+                      border: "1px solid var(--border)",
                       borderRadius: "8px",
+                      boxShadow: "0 4px 6px rgba(0, 0, 0, 0.1)",
+                      color: "var(--foreground)",
+                    }}  
+                    labelStyle={{
+                      color: "var(--foreground)",
+                      fontWeight: "600",
+                      fontSize: "14px",
                     }}
                     formatter={(
                       value: number,
                       name: string,
-                      props: { payload?: { completed: number; total: number } },
+                      props: { payload?: { completed: number; total: number; day: string; dayFull: string } },
                     ) => {
                       const completed = props?.payload?.completed || 0
                       const total = props?.payload?.total || 0
-                      return [`${value}% (${completed}/${total})`, "Completados"]
+                      return [
+                        <div key="tooltip-content" className="space-y-1">
+                          <div className="text-sm" style={{ color: "var(--foreground)" }}>
+                            Desempenho: {value}%
+                          </div>
+                          <div className="text-sm" style={{ color: "var(--muted-foreground)" }}>
+                            {completed} de {total} hábitos concluídos
+                          </div>
+                        </div>
+                      ]
                     }}
                   />
                   <Bar dataKey="performance" fill="#f97316" radius={[4, 4, 0, 0]} />

@@ -9,6 +9,7 @@ import { Line, LineChart, ResponsiveContainer, XAxis, YAxis, CartesianGrid, Tool
 interface Habit {
   id: string
   name: string
+  icon: string
   completions: Record<string, boolean>
 }
 
@@ -195,7 +196,10 @@ export function HabitDetailPage({ habit, onUpdate, onBack }: HabitDetailPageProp
             ← Voltar
           </Button>
           <div className="flex-1">
-            <h1 className="text-lg md:text-2xl font-bold truncate">{habit.name}</h1>
+            <div className="flex items-center gap-3">
+              <span className="text-2xl">{habit.icon}</span>
+              <h1 className="text-lg md:text-2xl font-bold truncate">{habit.name}</h1>
+            </div>
             <p className="text-sm text-muted-foreground">Detalhes e análise individual</p>
           </div>
         </div>
@@ -305,13 +309,13 @@ export function HabitDetailPage({ habit, onUpdate, onBack }: HabitDetailPageProp
                     <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
                     <XAxis
                       dataKey="date"
-                      stroke="hsl(var(--muted-foreground))"
+                      stroke="var(--chart-text)"
                       fontSize={11}
                       tickLine={false}
                       axisLine={false}
                     />
                     <YAxis
-                      stroke="hsl(var(--muted-foreground))"
+                      stroke="var(--chart-text)"
                       fontSize={11}
                       tickLine={false}
                       axisLine={false}
@@ -320,11 +324,12 @@ export function HabitDetailPage({ habit, onUpdate, onBack }: HabitDetailPageProp
                     />
                     <Tooltip
                       contentStyle={{
-                        backgroundColor: "hsl(var(--card))",
-                        border: "1px solid hsl(var(--border))",
+                        backgroundColor: "var(--card)",
+                        border: "1px solid var(--border)",
                         borderRadius: "8px",
+                        color: "var(--foreground)",
                       }}
-                      formatter={(value: number | null) => [
+                      formatter={(value: any) => [
                         value === 100 ? "Feito" : value === 0 ? "Não feito" : "Não marcado",
                         "Status",
                       ]}
@@ -332,9 +337,9 @@ export function HabitDetailPage({ habit, onUpdate, onBack }: HabitDetailPageProp
                     <Line
                       type="monotone"
                       dataKey="value"
-                      stroke="#f97316"
+                      stroke="hsl(var(--primary))"
                       strokeWidth={3}
-                      dot={{ fill: "#f97316", strokeWidth: 2, r: 4 }}
+                      dot={{ fill: "hsl(var(--primary))", strokeWidth: 2, r: 4 }}
                       connectNulls={false}
                     />
                   </LineChart>
@@ -342,7 +347,7 @@ export function HabitDetailPage({ habit, onUpdate, onBack }: HabitDetailPageProp
               </div>
               <div className="flex justify-center gap-6 mt-4">
                 <div className="flex items-center gap-2">
-                  <div className="w-3 h-3 bg-orange-500 rounded-full"></div>
+                  <div className="w-3 h-3 rounded-full" style={{ backgroundColor: 'hsl(var(--primary))' }}></div>
                   <span className="text-sm text-muted-foreground">Progresso</span>
                 </div>
               </div>
