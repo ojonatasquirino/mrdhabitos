@@ -41,19 +41,41 @@ export function ThemeProvider({
   useEffect(() => {
     const root = window.document.documentElement
 
-    root.classList.remove("light", "dark")
+    const applyTheme = (currentTheme: Theme) => {
+      root.classList.remove("light", "dark")
 
-    if (theme === "system") {
-      const systemTheme = window.matchMedia("(prefers-color-scheme: dark)")
-        .matches
-        ? "dark"
-        : "light"
+      if (currentTheme === "system") {
+        const systemTheme = window.matchMedia("(prefers-color-scheme: dark)")
+          .matches
+          ? "dark"
+          : "light"
 
-      root.classList.add(systemTheme)
-      return
+        root.classList.add(systemTheme)
+        return
+      }
+
+      root.classList.add(currentTheme)
     }
 
-    root.classList.add(theme)
+    // Aplicar tema inicial
+    applyTheme(theme)
+
+    // Se o tema for "system", escutar mudanças na preferência do sistema
+    if (theme === "system") {
+      const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)")
+      
+      const handleSystemThemeChange = () => {
+        applyTheme("system")
+      }
+
+      // Adicionar listener para mudanças no tema do sistema
+      mediaQuery.addEventListener("change", handleSystemThemeChange)
+
+      // Cleanup do listener
+      return () => {
+        mediaQuery.removeEventListener("change", handleSystemThemeChange)
+      }
+    }
   }, [theme])
 
   const value = {
