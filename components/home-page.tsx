@@ -7,6 +7,13 @@ import { AddHabitPage } from "@/components/add-habit-page"
 import { HabitDetailPage } from "@/components/habit-detail-page"
 import { AnalysisPage } from "@/components/analysis-page"
 import { Trash2, Plus, BarChart3, TrendingUp, LogOut } from "lucide-react"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 
 interface Habit {
   id: string
@@ -236,14 +243,39 @@ export function HomePage({ onLogout }: HomePageProps) {
                             </p>
                           </div>
                         </div>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => deleteHabit(habit.id)}
-                          className="text-muted-foreground hover:text-destructive shrink-0 min-h-[44px] min-w-[44px]"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="text-muted-foreground hover:text-destructive shrink-0 min-h-[44px] min-w-[44px]"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent className="w-[218px] max-w-full">
+                              <DropdownMenuLabel className="font-normal text-center text-xs">Tem certeza que deseja remover este hábito?</DropdownMenuLabel>
+                              <DropdownMenuItem className="w-full p-0">
+                                <div className="flex w-full gap-2 p-2">
+                                  <Button
+                                    variant="destructive"
+                                    size="sm"
+                                    onClick={() => deleteHabit(habit.id)}
+                                    className="flex-1"
+                                  >
+                                    Sim
+                                  </Button>
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="flex-1"
+                                  >
+                                    Não
+                                  </Button>
+                                </div>
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
                       </CardTitle>
                     </CardHeader>
                     <CardContent className="pt-0">
