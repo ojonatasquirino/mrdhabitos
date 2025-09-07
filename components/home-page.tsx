@@ -1,12 +1,12 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { AddHabitPage } from "@/components/add-habit-page"
 import { HabitDetailPage } from "@/components/habit-detail-page"
 import { AnalysisPage } from "@/components/analysis-page"
-import { Trash2, Plus, BarChart3, TrendingUp, LogOut } from "lucide-react"
+import { Edit2, Trash2, Plus, BarChart3, TrendingUp, LogOut } from "lucide-react"
 
 interface Habit {
   id: string
@@ -22,6 +22,9 @@ export function HomePage({ onLogout }: HomePageProps) {
   const [habits, setHabits] = useState<Habit[]>([])
   const [currentPage, setCurrentPage] = useState<"home" | "add" | "detail" | "analysis">("home")
   const [selectedHabitId, setSelectedHabitId] = useState<string | null>(null)
+  const [editingHabitId, setEditingHabitId] = useState<string | null>(null)
+  const [editHabitName, setEditHabitName] = useState("")
+  const editInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     // Load habits from localStorage
@@ -147,6 +150,29 @@ export function HomePage({ onLogout }: HomePageProps) {
     return dayNames[index]
   }
 
+  const startEditing = (habit: Habit) => {
+    setEditingHabitId(habit.id);
+    setEditHabitName(habit.name);
+    // Focus the input in the next tick after it's rendered
+    setTimeout(() => editInputRef.current?.focus(), 0);
+  };
+
+  const saveEdit = (habit: Habit) => {
+    if (editHabitName.trim()) {
+      const updatedHabit = { ...habit, name: editHabitName.trim() };
+      updateHabit(updatedHabit);
+    }
+    setEditingHabitId(null);
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent, habit: Habit) => {
+    if (e.key === 'Enter') {
+      saveEdit(habit);
+    } else if (e.key === 'Escape') {
+      setEditingHabitId(null);
+    }
+  };
+
   if (currentPage === "add") {
     return <AddHabitPage onAdd={addHabit} onCancel={() => setCurrentPage("home")} />
   }
@@ -229,7 +255,22 @@ export function HomePage({ onLogout }: HomePageProps) {
                           <CircularProgress percentage={progress.percentage} size={40} />
                           <div className="flex-1 min-w-0">
                             <h3 className="text-lg sm:text-xl font-semibold text-balance leading-tight">
-                              {habit.name}
+                              {editingHabitId === habit.id ? (
+                                <input
+                                  ref={editInputRef}
+                                  type="text"
+                                  value={editHabitName}
+                                  onChange={(e) => setEditHabitName(e.target.value)}
+                                  onKeyDown={(e) => handleKeyDown(e, habit)}
+                                  onBlur={() => saveEdit(habit)}
+                                  className="w-full bg-transparent border-b border-foreground focus:outline-none focus:border-primary"
+                                  autoFocus
+                                />
+                              ) : (
+                                <span onClick={() => startEditing(habit)} className="cursor-text">
+                                  {habit.name}
+                                </span>
+                              )}
                             </h3>
                             <p className="text-xs sm:text-sm text-muted-foreground">
                               {progress.completed} de {progress.total} dias esta semana
@@ -243,6 +284,14 @@ export function HomePage({ onLogout }: HomePageProps) {
                           className="text-muted-foreground hover:text-destructive shrink-0 min-h-[44px] min-w-[44px]"
                         >
                           <Trash2 className="w-4 h-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => startEditing(habit)}
+                          className="text-muted-foreground hover:text-destructive shrink-0 min-h-[44px] min-w-[44px]"
+                        >
+                          <Edit2 className="w-4 h-4" />
                         </Button>
                       </CardTitle>
                     </CardHeader>
