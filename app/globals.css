@@ -4,7 +4,7 @@
 @custom-variant dark (&:is(.dark *));
 
 :root {
-  /* Tornando todo o sistema completamente branco */
+  /* Tema claro (padrão) */
   --background: #ffffff;
   --foreground: #000000;
   --card: #ffffff;
@@ -38,6 +38,46 @@
   --sidebar-accent-foreground: #000000;
   --sidebar-border: #e5e5e5;
   --sidebar-ring: rgba(0, 0, 0, 0.1);
+  --chart-text: #000000;
+  --chart-text-secondary: #666666;
+}
+
+.dark {
+  /* Tema escuro com melhor contraste */
+  --background: #0a0a0a;
+  --foreground: #ffffff;
+  --card: #1a1a1a;
+  --card-foreground: #ffffff;
+  --popover: #1a1a1a;
+  --popover-foreground: #ffffff;
+  --primary: #ffffff;
+  --primary-foreground: #0a0a0a;
+  --secondary: #1a1a1a;
+  --secondary-foreground: #ffffff;
+  --muted: #1a1a1a;
+  --muted-foreground: #d1d5db;
+  --accent: #1a1a1a;
+  --accent-foreground: #ffffff;
+  --destructive: #ef4444;
+  --destructive-foreground: #ffffff;
+  --border: #374151;
+  --input: #1a1a1a;
+  --ring: rgba(255, 255, 255, 0.2);
+  --chart-1: #ffffff;
+  --chart-2: #d1d5db;
+  --chart-3: #9ca3af;
+  --chart-4: #6b7280;
+  --chart-5: #374151;
+  --sidebar: #0a0a0a;
+  --sidebar-foreground: #ffffff;
+  --sidebar-primary: #ffffff;
+  --sidebar-primary-foreground: #0a0a0a;
+  --sidebar-accent: #1a1a1a;
+  --sidebar-accent-foreground: #ffffff;
+  --sidebar-border: #374151;
+  --sidebar-ring: rgba(255, 255, 255, 0.2);
+  --chart-text: #ffffff;
+  --chart-text-secondary: #d1d5db;
 }
 
 /* Removendo completamente o modo dark */
@@ -81,6 +121,8 @@
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
+  --color-chart-text: var(--chart-text);
+  --color-chart-text-secondary: var(--chart-text-secondary);
 }
 
 @layer base {
@@ -88,19 +130,19 @@
     @apply border-border outline-ring/50;
   }
   body {
-    @apply bg-white text-black font-sans;
+    @apply bg-background text-foreground font-sans;
   }
 }
 
-/* Simplificando utilitários para tema totalmente branco */
+/* Utilitários adaptáveis ao tema */
 @layer utilities {
   .gradient-card {
-    background: #ffffff;
+    background: var(--card);
   }
 
   .floating-card {
-    background: #ffffff;
-    border: 1px solid #e5e5e5;
+    background: var(--card);
+    border: 1px solid var(--border);
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   }
@@ -108,6 +150,14 @@
   .floating-card:hover {
     transform: translateY(-1px);
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  }
+
+  .dark .floating-card {
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.05);
+  }
+
+  .dark .floating-card:hover {
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.1);
   }
 
   .progress-ring {

@@ -11,6 +11,7 @@ import { Edit2, Trash2, Plus, BarChart3, TrendingUp, LogOut } from "lucide-react
 interface Habit {
   id: string
   name: string
+  icon: string
   completions: Record<string, boolean> // date string -> completed
 }
 
@@ -30,7 +31,17 @@ export function HomePage({ onLogout }: HomePageProps) {
     // Load habits from localStorage
     const savedHabits = localStorage.getItem("minimo-ridiculo-habits")
     if (savedHabits) {
-      setHabits(JSON.parse(savedHabits))
+      const parsedHabits = JSON.parse(savedHabits)
+      // Migrate existing habits to include icons
+      const migratedHabits = parsedHabits.map((habit: any) => ({
+        ...habit,
+        icon: habit.icon || "🎯" // Default icon for existing habits
+      }))
+      setHabits(migratedHabits)
+      // Save migrated habits back to localStorage
+      if (migratedHabits.some((habit: any) => !habit.icon)) {
+        localStorage.setItem("minimo-ridiculo-habits", JSON.stringify(migratedHabits))
+      }
     }
   }, [])
 
@@ -39,10 +50,11 @@ export function HomePage({ onLogout }: HomePageProps) {
     localStorage.setItem("minimo-ridiculo-habits", JSON.stringify(newHabits))
   }
 
-  const addHabit = (name: string) => {
+  const addHabit = (name: string, icon: string = "🎯") => {
     const newHabit: Habit = {
       id: Date.now().toString(),
       name,
+      icon,
       completions: {},
     }
     saveHabits([...habits, newHabit])
@@ -252,7 +264,10 @@ export function HomePage({ onLogout }: HomePageProps) {
                     <CardHeader className="pb-3 sm:pb-4">
                       <CardTitle className="flex items-start sm:items-center justify-between gap-3">
                         <div className="flex items-center gap-3 sm:gap-4 flex-1 min-w-0">
-                          <CircularProgress percentage={progress.percentage} size={40} />
+                          <div className="flex items-center gap-3">
+                            <div className="text-2xl">{habit.icon}</div>
+                            <CircularProgress percentage={progress.percentage} size={40} />
+                          </div>
                           <div className="flex-1 min-w-0">
                             <h3 className="text-lg sm:text-xl font-semibold text-balance leading-tight">
                               {editingHabitId === habit.id ? (
