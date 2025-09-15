@@ -137,7 +137,7 @@ export function HomePage({ onLogout }: HomePageProps) {
       <div className="flex flex-col items-center gap-1">
         <span className="text-xs font-medium text-muted-foreground">{dayName}</span>
         <div
-          className={`w-8 h-8 rounded-full ${bgColor} ${textColor} flex items-center justify-center text-sm font-semibold habit-day cursor-pointer`}
+          className={`w-8 h-8 rounded-full ${bgColor} ${textColor} flex items-center justify-center text-sm font-semibold habit-day cursor-default`}
         >
           {icon}
         </div>
