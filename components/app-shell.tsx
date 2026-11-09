@@ -1,5 +1,7 @@
 "use client"
 
+import { useEffect, useState } from "react"
+import { createPortal } from "react-dom"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { BarChart3, Home, Plus } from "lucide-react"
@@ -120,18 +122,23 @@ export function BottomSheet({
   onClose: () => void
   children: React.ReactNode
 }) {
-  if (!open) return null
-  return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center" role="dialog" aria-modal="true">
+  const [mounted, setMounted] = useState(false)
+  useEffect(() => setMounted(true), [])
+  if (!open || !mounted) return null
+
+  // Portal no <body>: fica acima da barra de navegação e de qualquer animação da página
+  return createPortal(
+    <div className="fixed inset-0 z-[60] flex items-end justify-center" role="dialog" aria-modal="true">
       <button
         aria-label="Fechar"
         className="absolute inset-0 bg-black/40 animate-in fade-in duration-200"
         onClick={onClose}
       />
-      <div className="safe-bottom relative w-full max-w-md rounded-t-3xl bg-card px-5 pt-3 shadow-2xl animate-in slide-in-from-bottom duration-300">
+      <div className="safe-bottom relative max-h-[90dvh] w-full max-w-md overflow-y-auto rounded-t-3xl bg-card px-5 pt-3 shadow-2xl animate-in slide-in-from-bottom duration-300">
         <div className="mx-auto mb-4 h-1.5 w-10 rounded-full bg-border" />
         {children}
       </div>
-    </div>
+    </div>,
+    document.body,
   )
 }

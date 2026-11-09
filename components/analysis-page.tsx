@@ -76,6 +76,10 @@ export function AnalysisPage({ habits, notes = {} }: AnalysisPageProps) {
         </div>
       ) : (
         <div className="space-y-4">
+          <ChartCard title="Constância" description="Últimas 15 semanas">
+            <Heatmap habits={habits} />
+          </ChartCard>
+
           <div className="grid grid-cols-3 gap-2">
             <Stat label="Concluído" value={`${periodRate}%`} />
             <Stat label="Sequência" value={String(streak)} hint={streak === 1 ? "dia" : "dias"} />
@@ -159,10 +163,6 @@ export function AnalysisPage({ habits, notes = {} }: AnalysisPageProps) {
                 </li>
               ))}
             </ul>
-          </ChartCard>
-
-          <ChartCard title="Constância" description="Últimas 15 semanas">
-            <Heatmap habits={habits} />
           </ChartCard>
 
           <Journal notes={notes} />
