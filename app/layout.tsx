@@ -9,6 +9,7 @@ import { AuthProvider } from "@/hooks/use-auth"
 import { AuthGate } from "@/components/auth-gate"
 import { ServiceWorkerRegister } from "@/components/sw-register"
 import { Splash } from "@/components/splash"
+import { THEME_SCRIPT } from "@/hooks/use-theme"
 import "./globals.css"
 
 export const metadata: Metadata = {
@@ -19,7 +20,10 @@ export const metadata: Metadata = {
 }
 
 export const viewport: Viewport = {
-  themeColor: "#ffffff",
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#ffffff" },
+    { media: "(prefers-color-scheme: dark)", color: "#0a0a0a" },
+  ],
   viewportFit: "cover",
   width: "device-width",
   initialScale: 1,
@@ -32,7 +36,10 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="pt-BR">
+    <html lang="pt-BR" suppressHydrationWarning>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: THEME_SCRIPT }} />
+      </head>
       <body className={`font-sans ${GeistSans.variable} ${GeistMono.variable}`}>
         <Splash />
         <Suspense fallback={null}><AuthProvider>

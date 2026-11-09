@@ -25,26 +25,26 @@ export function ReminderButton({ habits }: { habits: Habit[] }) {
           setMsg("")
           setOpen(true)
         }}
-        className={active ? "text-foreground" : "text-neutral-400"}
+        className={active ? "text-foreground" : "text-muted-foreground"}
       >
         {active ? <BellRing className="h-5 w-5" /> : <Bell className="h-5 w-5" />}
       </IconButton>
 
       <BottomSheet open={open} onClose={() => setOpen(false)}>
         <h2 className="text-lg font-semibold">Lembrete diário</h2>
-        <p className="mt-1 text-sm text-neutral-500">Um aviso no horário, só se ainda houver hábito sem marcar.</p>
+        <p className="mt-1 text-sm text-muted-foreground">Um aviso no horário, só se ainda houver hábito sem marcar.</p>
 
         <input
           type="time"
           value={time}
           onChange={(e) => setTime(e.target.value)}
-          className="mt-5 w-full rounded-2xl bg-neutral-100 px-4 py-4 text-center text-3xl font-semibold tabular-nums outline-none focus:ring-2 focus:ring-black/10"
+          className="mt-5 w-full rounded-2xl bg-muted px-4 py-4 text-center text-3xl font-semibold tabular-nums outline-none focus:ring-2 focus:ring-foreground/10"
         />
 
         {permission === "denied" && (
           <p className="mt-3 text-sm text-red-600">Notificações bloqueadas. Libere nas configurações do navegador.</p>
         )}
-        {msg && <p className="mt-3 text-sm text-neutral-500">{msg}</p>}
+        {msg && <p className="mt-3 text-sm text-muted-foreground">{msg}</p>}
 
         <div className="mt-5 flex flex-col gap-2 pb-2">
           <Button
@@ -60,7 +60,7 @@ export function ReminderButton({ habits }: { habits: Habit[] }) {
           {active && (
             <Button
               variant="ghost"
-              className="h-12 rounded-2xl text-base text-neutral-500"
+              className="h-12 rounded-2xl text-base text-muted-foreground"
               onClick={() => {
                 disable()
                 setOpen(false)

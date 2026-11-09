@@ -11,6 +11,7 @@ import { cn } from "@/lib/utils"
 
 interface AnalysisPageProps {
   habits: Habit[]
+  notes?: Record<string, string>
   onBack?: () => void
 }
 
@@ -23,7 +24,7 @@ const RANGES = [
 const trendConfig = { rate: { label: "Concluído", color: "var(--chart-2)" } } satisfies ChartConfig
 const weekdayConfig = { rate: { label: "Média", color: "var(--chart-1)" } } satisfies ChartConfig
 
-export function AnalysisPage({ habits }: AnalysisPageProps) {
+export function AnalysisPage({ habits, notes = {} }: AnalysisPageProps) {
   const [range, setRange] = useState<number>(30)
   const days = useMemo(() => lastDays(range), [range])
 
@@ -53,7 +54,7 @@ export function AnalysisPage({ habits }: AnalysisPageProps) {
     <AppShell>
       <PageHeader subtitle="Seu progresso" title="Análise" />
 
-      <div className="mb-5 grid grid-cols-3 rounded-2xl bg-neutral-100 p-1">
+      <div className="mb-5 grid grid-cols-3 rounded-2xl bg-muted p-1">
         {RANGES.map((r) => (
           <button
             key={r.days}
@@ -61,7 +62,7 @@ export function AnalysisPage({ habits }: AnalysisPageProps) {
             onClick={() => setRange(r.days)}
             className={cn(
               "pressable rounded-xl py-2 text-sm font-medium transition-all",
-              range === r.days ? "bg-white text-foreground shadow-sm" : "text-neutral-500",
+              range === r.days ? "bg-card text-foreground shadow-sm" : "text-muted-foreground",
             )}
           >
             {r.label}
@@ -70,7 +71,7 @@ export function AnalysisPage({ habits }: AnalysisPageProps) {
       </div>
 
       {habits.length === 0 ? (
-        <div className="rounded-3xl bg-neutral-50 p-8 text-center text-sm text-neutral-500">
+        <div className="rounded-3xl bg-muted/60 p-8 text-center text-sm text-muted-foreground">
           Crie um hábito para ver seus gráficos aqui.
         </div>
       ) : (
@@ -147,11 +148,11 @@ export function AnalysisPage({ habits }: AnalysisPageProps) {
                 <li key={habit.id}>
                   <div className="mb-1.5 flex items-baseline justify-between gap-3 text-sm">
                     <span className="truncate font-medium">{habit.name}</span>
-                    <span className="font-mono tabular-nums text-neutral-500">{rate}%</span>
+                    <span className="font-mono tabular-nums text-muted-foreground">{rate}%</span>
                   </div>
-                  <div className="h-2 overflow-hidden rounded-full bg-neutral-100">
+                  <div className="h-2 overflow-hidden rounded-full bg-muted">
                     <div
-                      className="h-full rounded-full bg-black transition-[width] duration-700 ease-out"
+                      className="h-full rounded-full bg-foreground transition-[width] duration-700 ease-out"
                       style={{ width: `${rate}%` }}
                     />
                   </div>
@@ -163,6 +164,8 @@ export function AnalysisPage({ habits }: AnalysisPageProps) {
           <ChartCard title="Constância" description="Últimas 15 semanas">
             <Heatmap habits={habits} />
           </ChartCard>
+
+          <Journal notes={notes} />
         </div>
       )}
     </AppShell>
@@ -171,11 +174,11 @@ export function AnalysisPage({ habits }: AnalysisPageProps) {
 
 function Stat({ label, value, hint }: { label: string; value: string; hint?: string }) {
   return (
-    <div className="rounded-2xl border border-neutral-200 p-3">
-      <p className="text-[11px] font-medium text-neutral-400">{label}</p>
+    <div className="rounded-2xl border border-border p-3">
+      <p className="text-[11px] font-medium text-muted-foreground">{label}</p>
       <p className="mt-1 text-xl font-semibold tabular-nums">
         {value}
-        {hint && <span className="ml-1 text-xs font-normal text-neutral-400">{hint}</span>}
+        {hint && <span className="ml-1 text-xs font-normal text-muted-foreground">{hint}</span>}
       </p>
     </div>
   )
@@ -191,9 +194,9 @@ function ChartCard({
   children: React.ReactNode
 }) {
   return (
-    <section className="rounded-3xl border border-neutral-200 p-4 animate-in fade-in slide-in-from-bottom-2 duration-500">
+    <section className="rounded-3xl border border-border p-4 animate-in fade-in slide-in-from-bottom-2 duration-500">
       <h2 className="text-sm font-semibold">{title}</h2>
-      {description && <p className="mb-3 text-xs text-neutral-400">{description}</p>}
+      {description && <p className="mb-3 text-xs text-muted-foreground">{description}</p>}
       {children}
     </section>
   )
@@ -207,7 +210,7 @@ function Heatmap({ habits }: { habits: Habit[] }) {
   const todayKey = toDateKey(today)
 
   const level = (rate: number | null) => {
-    if (!rate) return "bg-neutral-100"
+    if (!rate) return "bg-muted"
     if (rate < 34) return "bg-green-200"
     if (rate < 67) return "bg-green-400"
     if (rate < 100) return "bg-green-500"
@@ -231,13 +234,41 @@ function Heatmap({ habits }: { habits: Habit[] }) {
           )
         })}
       </div>
-      <div className="mt-3 flex items-center justify-end gap-1 text-[10px] text-neutral-400">
+      <div className="mt-3 flex items-center justify-end gap-1 text-[10px] text-muted-foreground">
         menos
-        {["bg-neutral-100", "bg-green-200", "bg-green-400", "bg-green-500", "bg-green-700"].map((c) => (
+        {["bg-muted", "bg-green-200", "bg-green-400", "bg-green-500", "bg-green-700"].map((c) => (
           <span key={c} className={cn("h-2.5 w-2.5 rounded-[3px]", c)} />
         ))}
         mais
       </div>
     </div>
+  )
+}
+
+function Journal({ notes }: { notes: Record<string, string> }) {
+  const entries = Object.entries(notes)
+    .sort(([a], [b]) => (a < b ? 1 : -1))
+    .slice(0, 30)
+  if (!entries.length) return null
+
+  return (
+    <ChartCard title="Diário" description="Suas notas mais recentes">
+      <ol className="space-y-4">
+        {entries.map(([key, text]) => {
+          const [y, m, d] = key.split("-").map(Number)
+          const date = new Date(y, m - 1, d).toLocaleDateString("pt-BR", {
+            weekday: "short",
+            day: "numeric",
+            month: "short",
+          })
+          return (
+            <li key={key} className="border-l-2 border-border pl-3">
+              <p className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">{date}</p>
+              <p className="mt-0.5 whitespace-pre-line text-sm leading-relaxed">{text}</p>
+            </li>
+          )
+        })}
+      </ol>
+    </ChartCard>
   )
 }

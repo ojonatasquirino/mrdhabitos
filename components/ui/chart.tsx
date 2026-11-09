@@ -41,7 +41,7 @@ export function ChartContainer({
           "[&_.recharts-cartesian-axis-tick_text]:fill-muted-foreground",
           "[&_.recharts-cartesian-grid_line]:stroke-border/60",
           "[&_.recharts-curve.recharts-tooltip-cursor]:stroke-border",
-          "[&_.recharts-rectangle.recharts-tooltip-cursor]:fill-black/[0.03]",
+          "[&_.recharts-rectangle.recharts-tooltip-cursor]:fill-foreground/[0.04]",
           "[&_.recharts-layer]:outline-none [&_.recharts-surface]:outline-none",
           className,
         )}
@@ -82,7 +82,7 @@ export function ChartTooltipContent({
   const title = labelKey ? (payload[0]?.payload?.[labelKey] as React.ReactNode) : label
 
   return (
-    <div className="min-w-32 rounded-xl border border-border bg-white/95 px-3 py-2 text-xs shadow-xl backdrop-blur">
+    <div className="min-w-32 rounded-xl border border-border bg-popover/95 px-3 py-2 text-xs shadow-xl backdrop-blur">
       {title != null && <div className="mb-1 font-medium text-foreground">{title}</div>}
       {payload.map((item) => {
         const key = String(item.dataKey ?? item.name)

@@ -40,7 +40,28 @@
   --sidebar-ring: rgba(0, 0, 0, 0.1);
 }
 
-/* Removendo completamente o modo dark */
+.dark {
+  --background: #0a0a0a;
+  --foreground: #fafafa;
+  --card: #111111;
+  --card-foreground: #fafafa;
+  --popover: #111111;
+  --popover-foreground: #fafafa;
+  --primary: #fafafa;
+  --primary-foreground: #0a0a0a;
+  --secondary: #1c1c1e;
+  --secondary-foreground: #fafafa;
+  --muted: #1c1c1e;
+  --muted-foreground: #a1a1aa;
+  --accent: #1c1c1e;
+  --accent-foreground: #fafafa;
+  --border: #27272a;
+  --input: #27272a;
+  --ring: rgba(255, 255, 255, 0.15);
+  --chart-1: #fafafa;
+  --chart-2: #22c55e;
+  color-scheme: dark;
+}
 
 @theme inline {
   --font-sans: var(--font-geist-sans);
@@ -131,6 +152,8 @@ html {
 }
 body {
   -webkit-font-smoothing: antialiased;
+  background: var(--background);
+  color: var(--foreground);
 }
 .pressable {
   transition: transform 120ms ease, background-color 160ms ease, box-shadow 160ms ease;

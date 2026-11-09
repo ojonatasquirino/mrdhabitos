@@ -74,7 +74,7 @@ export function HabitDetailPage({ habit, onUpdate, onBack, onDelete }: HabitDeta
                   setEditing(false)
                 }
               }}
-              className="w-full border-b-2 border-black bg-transparent outline-none"
+              className="w-full border-b-2 border-foreground bg-transparent outline-none"
             />
           ) : (
             habit.name
@@ -105,7 +105,7 @@ export function HabitDetailPage({ habit, onUpdate, onBack, onDelete }: HabitDeta
         <Stat label="30 dias" value={habitRate(habit, lastDays(30))} unit="%" />
       </div>
 
-      <section className="mt-4 rounded-3xl border border-neutral-200 p-4">
+      <section className="mt-4 rounded-3xl border border-border p-4">
         <div className="mb-3 flex items-center justify-between">
           <IconButton
             aria-label="Mês anterior"
@@ -128,7 +128,7 @@ export function HabitDetailPage({ habit, onUpdate, onBack, onDelete }: HabitDeta
 
         <div className="grid grid-cols-7 gap-1.5 text-center">
           {WEEK.map((d, i) => (
-            <span key={i} className="pb-1 text-[11px] font-medium text-neutral-400">
+            <span key={i} className="pb-1 text-[11px] font-medium text-muted-foreground">
               {d}
             </span>
           ))}
@@ -155,8 +155,8 @@ export function HabitDetailPage({ habit, onUpdate, onBack, onDelete }: HabitDeta
                   "pressable relative flex aspect-square items-center justify-center rounded-full text-sm font-medium transition-colors disabled:opacity-25",
                   status === true && "bg-green-500 text-white",
                   status === false && "bg-red-500 text-white",
-                  status === undefined && "hover:bg-neutral-100",
-                  key === todayKey && status === undefined && "ring-2 ring-black",
+                  status === undefined && "hover:bg-muted",
+                  key === todayKey && status === undefined && "ring-2 ring-foreground",
                 )}
               >
                 {status === true ? (
@@ -172,9 +172,9 @@ export function HabitDetailPage({ habit, onUpdate, onBack, onDelete }: HabitDeta
         </div>
       </section>
 
-      <section className="mt-4 rounded-3xl border border-neutral-200 p-4">
+      <section className="mt-4 rounded-3xl border border-border p-4">
         <h2 className="text-sm font-semibold">Por semana</h2>
-        <p className="mb-3 text-xs text-neutral-400">Dias feitos nas últimas 8 semanas</p>
+        <p className="mb-3 text-xs text-muted-foreground">Dias feitos nas últimas 8 semanas</p>
         <ChartContainer config={weeklyConfig} className="aspect-auto h-40 w-full">
           <BarChart data={weekly} margin={{ left: 0, right: 0, top: 8 }}>
             <CartesianGrid vertical={false} />
@@ -191,7 +191,7 @@ export function HabitDetailPage({ habit, onUpdate, onBack, onDelete }: HabitDeta
 
       <BottomSheet open={confirmDelete} onClose={() => setConfirmDelete(false)}>
         <h2 className="text-lg font-semibold">Excluir &quot;{habit.name}&quot;?</h2>
-        <p className="mt-1 text-sm text-neutral-500">Todo o histórico deste hábito será apagado.</p>
+        <p className="mt-1 text-sm text-muted-foreground">Todo o histórico deste hábito será apagado.</p>
         <div className="mt-5 flex flex-col gap-2 pb-2">
           <Button
             className="h-12 rounded-2xl bg-red-600 text-base hover:bg-red-700"
@@ -210,11 +210,11 @@ export function HabitDetailPage({ habit, onUpdate, onBack, onDelete }: HabitDeta
 
 function Stat({ label, value, unit }: { label: string; value: number; unit: string }) {
   return (
-    <div className="rounded-2xl border border-neutral-200 p-3">
-      <p className="text-[11px] font-medium text-neutral-400">{label}</p>
+    <div className="rounded-2xl border border-border p-3">
+      <p className="text-[11px] font-medium text-muted-foreground">{label}</p>
       <p className="mt-1 text-xl font-semibold tabular-nums">
         {value}
-        <span className="ml-0.5 text-xs font-normal text-neutral-400">{unit}</span>
+        <span className="ml-0.5 text-xs font-normal text-muted-foreground">{unit}</span>
       </p>
     </div>
   )
