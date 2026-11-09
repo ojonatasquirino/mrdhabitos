@@ -7,6 +7,7 @@ import { firebaseDb } from "@/lib/firebase"
 import { useAuth } from "@/hooks/use-auth"
 
 const STORAGE_KEY = "minimo-ridiculo-habits"
+const NOTES_KEY = "mrd-notes"
 const LEGACY_AUTH_KEYS = ["mrd-users", "mrd-current-user"]
 
 interface HabitsContextValue {
@@ -15,6 +16,9 @@ interface HabitsContextValue {
   addHabit: (name: string) => Habit
   updateHabit: (habit: Habit) => void
   deleteHabit: (id: string) => void
+  /** nota livre por dia (chave YYYY-MM-DD) */
+  notes: Record<string, string>
+  setNote: (key: string, text: string) => void
 }
 
 const HabitsContext = createContext<HabitsContextValue | null>(null)
@@ -26,6 +30,21 @@ function readLocal(): Habit[] {
   } catch {
     return []
   }
+}
+
+function readNotes(): Record<string, string> {
+  try {
+    const parsed = JSON.parse(localStorage.getItem(NOTES_KEY) ?? "{}")
+    return parsed && typeof parsed === "object" && !Array.isArray(parsed) ? parsed : {}
+  } catch {
+    return {}
+  }
+}
+
+function writeNotes(notes: Record<string, string>) {
+  try {
+    localStorage.setItem(NOTES_KEY, JSON.stringify(notes))
+  } catch {}
 }
 
 function writeLocal(habits: Habit[]) {
@@ -46,6 +65,8 @@ export function HabitsProvider({ children }: { children: React.ReactNode }) {
   const [habits, setHabits] = useState<Habit[]>([])
   const [ready, setReady] = useState(false)
   const habitsRef = useRef<Habit[]>([])
+  const [notes, setNotes] = useState<Record<string, string>>({})
+  const notesRef = useRef<Record<string, string>>({})
   const uid = user?.uid
 
   useEffect(() => {
@@ -54,6 +75,12 @@ export function HabitsProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     if (!authReady) return
+
+    const applyNotes = (next: Record<string, string>) => {
+      notesRef.current = next
+      setNotes(next)
+      writeNotes(next)
+    }
 
     const apply = (next: Habit[]) => {
       habitsRef.current = next
@@ -64,8 +91,12 @@ export function HabitsProvider({ children }: { children: React.ReactNode }) {
 
     if (!enabled || !uid) {
       apply(enabled ? [] : readLocal())
+      applyNotes(enabled ? {} : readNotes())
       if (enabled) setReady(true)
-      const onStorage = (e: StorageEvent) => e.key === STORAGE_KEY && apply(readLocal())
+      const onStorage = (e: StorageEvent) => {
+        if (e.key === STORAGE_KEY) apply(readLocal())
+        if (e.key === NOTES_KEY) applyNotes(readNotes())
+      }
       window.addEventListener("storage", onStorage)
       return () => window.removeEventListener("storage", onStorage)
     }
@@ -79,13 +110,19 @@ export function HabitsProvider({ children }: { children: React.ReactNode }) {
       if (cancelled) return
       if (!snap?.exists()) {
         const local = readLocal()
-        if (local.length) await setDoc(ref, { habits: local }, { merge: true })
+        const localNotes = readNotes()
+        if (local.length || Object.keys(localNotes).length)
+          await setDoc(ref, { habits: local, notes: localNotes }, { merge: true })
       }
-      unsub = onSnapshot(ref, (s) => apply((s.data()?.habits as Habit[]) ?? []))
+      unsub = onSnapshot(ref, (s) => {
+        apply((s.data()?.habits as Habit[]) ?? [])
+        applyNotes((s.data()?.notes as Record<string, string>) ?? {})
+      })
     })()
 
     // abre instantâneo com o cache enquanto a nuvem responde
     setHabits(readLocal())
+    setNotes(readNotes())
     return () => {
       cancelled = true
       unsub()
@@ -124,9 +161,26 @@ export function HabitsProvider({ children }: { children: React.ReactNode }) {
     [persist],
   )
 
+  const setNote = useCallback(
+    (key: string, text: string) => {
+      const next = { ...notesRef.current }
+      const trimmed = text.trim().slice(0, 500)
+      if (trimmed) next[key] = trimmed
+      else delete next[key]
+      notesRef.current = next
+      setNotes(next)
+      writeNotes(next)
+      if (enabled && uid) {
+        // sem merge no mapa de notas para que uma nota apagada suma da nuvem também
+        setDoc(doc(firebaseDb(), "users", uid), { habits: habitsRef.current, notes: next }).catch(console.error)
+      }
+    },
+    [enabled, uid],
+  )
+
   const value = useMemo(
-    () => ({ habits, ready, addHabit, updateHabit, deleteHabit }),
-    [habits, ready, addHabit, updateHabit, deleteHabit],
+    () => ({ habits, ready, addHabit, updateHabit, deleteHabit, notes, setNote }),
+    [habits, ready, addHabit, updateHabit, deleteHabit, notes, setNote],
   )
 
   return <HabitsContext.Provider value={value}>{children}</HabitsContext.Provider>

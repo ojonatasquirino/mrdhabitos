@@ -36,7 +36,7 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen bg-white flex">
+    <div className="min-h-screen bg-background flex">
       <div className="hidden lg:flex lg:w-1/2 bg-black text-white flex-col justify-center items-center p-12">
         <div className="max-w-md text-center space-y-6">
           {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -55,17 +55,17 @@ export default function LoginPage() {
           <div className="lg:hidden text-center space-y-3">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src="/logo.webp" alt="Logo MRD" width={72} height={72} className="mx-auto h-[72px] w-[72px] rounded-2xl shadow-lg" />
-            <h1 className="text-2xl font-bold text-black">MRD</h1>
-            <p className="mx-auto max-w-xs text-sm text-gray-600">
+            <h1 className="text-2xl font-bold text-foreground">MRD</h1>
+            <p className="mx-auto max-w-xs text-sm text-muted-foreground">
               Construa hábitos com tarefas tão pequenas, tão pequenas, que será ridículo não executar.
             </p>
           </div>
 
           <div className="text-center space-y-1">
-            <h2 className="text-xl font-semibold text-black">
+            <h2 className="text-xl font-semibold text-foreground">
               {mode === "login" ? "Bem-vindo de volta" : "Crie sua conta"}
             </h2>
-            <p className="text-sm text-gray-600">Seus hábitos sincronizados em qualquer dispositivo.</p>
+            <p className="text-sm text-muted-foreground">Seus hábitos sincronizados em qualquer dispositivo.</p>
           </div>
 
           <Button
@@ -73,7 +73,7 @@ export default function LoginPage() {
             variant="outline"
             disabled={loading}
             onClick={() => run(signInGoogle)}
-            className="w-full min-h-[48px] bg-white text-black border-gray-300 hover:bg-gray-50"
+            className="w-full min-h-[48px] bg-background text-foreground border-border hover:bg-muted"
           >
             <svg viewBox="0 0 24 24" className="w-5 h-5 mr-2" aria-hidden="true">
               <path fill="#4285F4" d="M23.5 12.3c0-.8-.1-1.6-.2-2.3H12v4.4h6.5a5.6 5.6 0 0 1-2.4 3.6v3h3.9c2.2-2.1 3.5-5.2 3.5-8.7z" />
@@ -84,58 +84,58 @@ export default function LoginPage() {
             Continuar com Google
           </Button>
 
-          <div className="flex items-center gap-3 text-xs text-gray-500">
-            <div className="h-px flex-1 bg-gray-200" />
+          <div className="flex items-center gap-3 text-xs text-muted-foreground">
+            <div className="h-px flex-1 bg-border" />
             ou com e-mail
-            <div className="h-px flex-1 bg-gray-200" />
+            <div className="h-px flex-1 bg-border" />
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
             {mode === "register" && (
               <div className="space-y-2">
-                <Label htmlFor="name" className="text-black">Nome</Label>
+                <Label htmlFor="name" className="text-foreground">Nome</Label>
                 <Input id="name" value={name} onChange={(e) => setName(e.target.value)} autoComplete="name"
-                  className="min-h-[48px] bg-white text-black border-gray-300" />
+                  className="min-h-[48px] bg-background text-foreground border-border" />
               </div>
             )}
             <div className="space-y-2">
-              <Label htmlFor="email" className="text-black">E-mail</Label>
+              <Label htmlFor="email" className="text-foreground">E-mail</Label>
               <Input id="email" type="email" required value={email} onChange={(e) => setEmail(e.target.value)}
-                autoComplete="email" className="min-h-[48px] bg-white text-black border-gray-300" />
+                autoComplete="email" className="min-h-[48px] bg-background text-foreground border-border" />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="password" className="text-black">Senha</Label>
+              <Label htmlFor="password" className="text-foreground">Senha</Label>
               <Input id="password" type="password" required minLength={6} value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 autoComplete={mode === "login" ? "current-password" : "new-password"}
-                className="min-h-[48px] bg-white text-black border-gray-300" />
+                className="min-h-[48px] bg-background text-foreground border-border" />
             </div>
 
             {error && (
-              <p role="alert" className="text-sm text-red-600">{error}</p>
+              <p role="alert" className="text-sm text-red-500">{error}</p>
             )}
 
-            <Button type="submit" disabled={loading} className="w-full min-h-[48px] bg-black text-white hover:bg-gray-800">
+            <Button type="submit" disabled={loading} className="w-full min-h-[48px] bg-foreground text-background hover:bg-foreground/90">
               {loading ? "Aguarde..." : mode === "login" ? "Entrar" : "Criar conta"}
             </Button>
           </form>
 
-          <p className="text-center text-sm text-gray-600">
+          <p className="text-center text-sm text-muted-foreground">
             {mode === "login" ? "Não tem uma conta? " : "Já tem conta? "}
-            <button type="button" className="text-black underline hover:no-underline"
+            <button type="button" className="text-foreground underline hover:no-underline"
               onClick={() => { setMode(mode === "login" ? "register" : "login"); setError("") }}>
               {mode === "login" ? "Cadastre-se" : "Faça login"}
             </button>
           </p>
 
-          <footer className="pt-6 text-center text-xs text-gray-500">
+          <footer className="pt-6 text-center text-xs text-muted-foreground">
             Feito com{" "}
             <Heart className="inline h-3.5 w-3.5 -translate-y-px fill-red-500 text-red-500" aria-label="amor" /> por{" "}
             <a
               href="https://ojonatasquirino.com"
               target="_blank"
               rel="noopener noreferrer"
-              className="font-medium text-black underline-offset-4 hover:underline"
+              className="font-medium text-foreground underline-offset-4 hover:underline"
             >
               ojonatasquirino.com
             </a>
