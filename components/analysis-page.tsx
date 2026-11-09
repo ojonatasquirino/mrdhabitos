@@ -76,7 +76,7 @@ export function AnalysisPage({ habits, notes = {} }: AnalysisPageProps) {
         </div>
       ) : (
         <div className="space-y-4">
-          <ChartCard title="Constância" description={`Cada quadrado é um dia · últimos ${range} dias`}>
+          <ChartCard title="Constância" description={`Últimos ${range} dias · cada quadrado é um dia`}>
             <Heatmap habits={habits} days={days} />
           </ChartCard>
 
@@ -203,57 +203,46 @@ function ChartCard({
 }
 
 /** Grade estilo GitHub: colunas = semanas, linhas = dias (dom a sáb). */
-/** Um quadrado por dia do período selecionado, em colunas de domingo a sábado. */
+/**
+ * Estilo "commits do GitHub": um quadradinho por dia do período selecionado,
+ * em ordem cronológica (esquerda para a direita), sem números.
+ */
 function Heatmap({ habits, days }: { habits: Habit[]; days: Date[] }) {
-  const lead = days[0]?.getDay() ?? 0
+  const cols = days.length <= 7 ? 7 : 15
   const level = (rate: number | null) => {
-    if (!rate) return "bg-muted text-muted-foreground"
-    if (rate < 34) return "bg-green-200 text-green-900"
-    if (rate < 67) return "bg-green-400 text-green-950"
-    if (rate < 100) return "bg-green-500 text-white"
-    return "bg-green-700 text-white"
+    if (!rate) return "bg-muted"
+    if (rate < 34) return "bg-green-200"
+    if (rate < 67) return "bg-green-400"
+    if (rate < 100) return "bg-green-500"
+    return "bg-green-700"
   }
 
   return (
     <div>
-      <div className="grid grid-cols-7 gap-1.5 text-center">
-        {["D", "S", "T", "Q", "Q", "S", "S"].map((d, i) => (
-          <span key={i} className="pb-0.5 text-[10px] font-medium text-muted-foreground">
-            {d}
-          </span>
-        ))}
-        {Array.from({ length: lead }, (_, i) => (
-          <span key={`e${i}`} />
-        ))}
+      <div className="grid gap-[3px]" style={{ gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))` }}>
         {days.map((d) => {
           const key = toDateKey(d)
           const rate = dayRate(habits, key)
-          const firstOfMonth = d.getDate() === 1
           return (
             <div
               key={key}
               title={`${d.toLocaleDateString("pt-BR")}: ${rate ?? 0}%`}
-              className={cn(
-                "flex aspect-square flex-col items-center justify-center rounded-lg text-[11px] font-semibold tabular-nums leading-none",
-                level(rate),
-              )}
-            >
-              {d.getDate()}
-              {firstOfMonth && (
-                <span className="mt-0.5 text-[8px] font-medium uppercase opacity-80">
-                  {d.toLocaleDateString("pt-BR", { month: "short" }).replace(".", "")}
-                </span>
-              )}
-            </div>
+              className={cn("aspect-square", cols === 7 ? "rounded-lg" : "rounded-[4px]", level(rate))}
+            />
           )
         })}
       </div>
-      <div className="mt-3 flex items-center justify-end gap-1 text-[10px] text-muted-foreground">
-        menos
-        {["bg-muted", "bg-green-200", "bg-green-400", "bg-green-500", "bg-green-700"].map((c) => (
-          <span key={c} className={cn("h-2.5 w-2.5 rounded-[3px]", c)} />
-        ))}
-        mais
+      <div className="mt-3 flex items-center justify-between text-[10px] text-muted-foreground">
+        <span>
+          {days[0]?.toLocaleDateString("pt-BR", { day: "2-digit", month: "short" }).replace(".", "")} → hoje
+        </span>
+        <span className="flex items-center gap-1">
+          menos
+          {["bg-muted", "bg-green-200", "bg-green-400", "bg-green-500", "bg-green-700"].map((c) => (
+            <span key={c} className={cn("h-2.5 w-2.5 rounded-[3px]", c)} />
+          ))}
+          mais
+        </span>
       </div>
     </div>
   )
