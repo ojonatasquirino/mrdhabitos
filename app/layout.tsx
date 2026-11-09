@@ -13,10 +13,16 @@ import "./globals.css"
 export const metadata: Metadata = {
   title: "minimo ridículo - Rastreador de Hábitos",
   description: "Um rastreador de hábitos minimalista e sem distrações",
-  appleWebApp: { capable: true, title: "MRD", statusBarStyle: "black-translucent" },
+  appleWebApp: { capable: true, title: "MRD", statusBarStyle: "default" },
 }
 
-export const viewport: Viewport = { themeColor: "#000000" }
+export const viewport: Viewport = {
+  themeColor: "#ffffff",
+  viewportFit: "cover",
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+}
 
 export default function RootLayout({
   children,
@@ -24,7 +30,7 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="pt-BR" className="dark">
+    <html lang="pt-BR">
       <body className={`font-sans ${GeistSans.variable} ${GeistMono.variable}`}>
         <Suspense fallback={null}><AuthProvider>
             <AuthGate>

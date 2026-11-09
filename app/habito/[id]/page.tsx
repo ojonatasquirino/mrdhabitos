@@ -14,7 +14,7 @@ const HabitDetailPage = dynamic(
 export default function HabitRoute() {
   const { id } = useParams<{ id: string }>()
   const router = useRouter()
-  const { habits, ready, updateHabit } = useHabits()
+  const { habits, ready, updateHabit, deleteHabit } = useHabits()
 
   if (!ready) return <div className="min-h-screen bg-background" aria-busy="true" />
 
@@ -30,5 +30,13 @@ export default function HabitRoute() {
     )
   }
 
-  return <HabitDetailPage habit={habit} onUpdate={updateHabit} onBack={() => router.push("/")} />
+  return <HabitDetailPage
+      habit={habit}
+      onUpdate={updateHabit}
+      onBack={() => router.push("/")}
+      onDelete={(habitId) => {
+        router.replace("/")
+        deleteHabit(habitId)
+      }}
+    />
 }
