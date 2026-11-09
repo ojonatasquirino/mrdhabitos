@@ -1,217 +1,242 @@
 "use client"
 
-import { toDateKey } from "@/lib/dates"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Bar, BarChart, ResponsiveContainer, XAxis, YAxis, CartesianGrid, Tooltip } from "recharts"
-import { TrendingUp, Target, Calendar, Award } from "lucide-react"
-
+import { useMemo, useState } from "react"
+import { Area, AreaChart, Bar, BarChart, CartesianGrid, Cell, XAxis, YAxis } from "recharts"
+import { AppShell, PageHeader } from "@/components/app-shell"
+import { ChartContainer, ChartTooltip, ChartTooltipContent, type ChartConfig } from "@/components/ui/chart"
+import { addDays, toDateKey } from "@/lib/dates"
+import { anyHabitStreak, dayRate, habitRate, lastDays, rateOverDays, weekdayRates } from "@/lib/stats"
 import type { Habit } from "@/lib/types"
+import { cn } from "@/lib/utils"
 
 interface AnalysisPageProps {
   habits: Habit[]
-  onBack: () => void
+  onBack?: () => void
 }
 
-export function AnalysisPage({ habits, onBack }: AnalysisPageProps) {
-  const getGeneralMetrics = () => {
-    const today = new Date()
-    const todayString = toDateKey(today)
+const RANGES = [
+  { days: 7, label: "7 dias" },
+  { days: 30, label: "30 dias" },
+  { days: 90, label: "90 dias" },
+] as const
 
-    // Taxa de sucesso hoje
-    const todayCompletions = habits.filter((habit) => habit.completions[todayString] === true).length
-    const todayRate = habits.length > 0 ? Math.round((todayCompletions / habits.length) * 100) : 0
+const trendConfig = { rate: { label: "Concluído", color: "var(--chart-2)" } } satisfies ChartConfig
+const weekdayConfig = { rate: { label: "Média", color: "var(--chart-1)" } } satisfies ChartConfig
 
-    // Streak atual (dias consecutivos com pelo menos 1 hábito completo)
-    let currentStreak = 0
-    for (let i = 0; i < 30; i++) {
-      const date = new Date(today)
-      date.setDate(date.getDate() - i)
-      const dateString = toDateKey(date)
+export function AnalysisPage({ habits }: AnalysisPageProps) {
+  const [range, setRange] = useState<number>(30)
+  const days = useMemo(() => lastDays(range), [range])
 
-      const dayCompletions = habits.filter((habit) => habit.completions[dateString] === true).length
-      if (dayCompletions > 0) {
-        currentStreak++
-      } else {
-        break
-      }
-    }
-
-    // Taxa de sucesso dos últimos 7 dias
-    let totalPossible = 0
-    let totalCompleted = 0
-    for (let i = 0; i < 7; i++) {
-      const date = new Date(today)
-      date.setDate(date.getDate() - i)
-      const dateString = toDateKey(date)
-
-      totalPossible += habits.length
-      totalCompleted += habits.filter((habit) => habit.completions[dateString] === true).length
-    }
-    const weeklyRate = totalPossible > 0 ? Math.round((totalCompleted / totalPossible) * 100) : 0
-
-    // Melhor dia da semana
-    const dayStats = Array(7)
-      .fill(0)
-      .map(() => ({ total: 0, completed: 0 }))
-    for (let i = 0; i < 30; i++) {
-      const date = new Date(today)
-      date.setDate(date.getDate() - i)
-      const dateString = toDateKey(date)
-      const dayOfWeek = date.getDay()
-
-      dayStats[dayOfWeek].total += habits.length
-      dayStats[dayOfWeek].completed += habits.filter((habit) => habit.completions[dateString] === true).length
-    }
-
-    const dayNames = ["Domingo", "Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado"]
-    let bestDay = "Domingo"
-    let bestRate = 0
-    dayStats.forEach((stat, index) => {
-      if (stat.total > 0) {
-        const rate = (stat.completed / stat.total) * 100
-        if (rate > bestRate) {
-          bestRate = rate
-          bestDay = dayNames[index]
+  // 7 dias: valor diário. 30/90: média móvel de 7 dias, para mostrar a tendência sem serrilhado.
+  const smooth = range > 7
+  const trend = useMemo(
+    () =>
+      days.map((d) => {
+        const window = smooth ? lastDays(7, d) : [d]
+        const rates = window.map((w) => dayRate(habits, toDateKey(w)) ?? 0)
+        return {
+          label: d.toLocaleDateString("pt-BR", { day: "2-digit", month: "short" }).replace(".", ""),
+          rate: Math.round(rates.reduce((a, b) => a + b, 0) / rates.length),
         }
-      }
-    })
-
-    return { todayRate, currentStreak, weeklyRate, bestDay }
-  }
-
-  const getLast7Days = () => {
-    const days = []
-    const dayNames = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"]
-
-    for (let i = 6; i >= 0; i--) {
-      const date = new Date()
-      date.setDate(date.getDate() - i)
-      const dateString = toDateKey(date)
-      const dayName = dayNames[date.getDay()]
-
-      // Calculate performance (percentage of habits completed)
-      const totalHabits = habits.length
-      const completedHabits = habits.filter((habit) => habit.completions[dateString] === true).length
-      const performance = totalHabits > 0 ? Math.round((completedHabits / totalHabits) * 100) : 0
-
-      days.push({
-        day: dayName,
-        performance,
-        completed: completedHabits,
-        total: totalHabits,
-      })
-    }
-
-    return days
-  }
-
-  const chartData = getLast7Days()
-  const metrics = getGeneralMetrics()
+      }),
+    [days, habits, smooth],
+  )
+  const weekdays = useMemo(() => weekdayRates(habits, Math.max(range, 28)), [habits, range])
+  const best = weekdays.reduce((a, b) => (b.rate > a.rate ? b : a), weekdays[0])
+  const periodRate = rateOverDays(habits, days)
+  const streak = anyHabitStreak(habits)
+  const ranking = [...habits]
+    .map((h) => ({ habit: h, rate: habitRate(h, days) }))
+    .sort((a, b) => b.rate - a.rate)
 
   return (
-    <div className="min-h-screen bg-background p-4">
-      <div className="max-w-4xl mx-auto">
-        <div className="flex items-center gap-3 mb-6">
-          <Button variant="outline" size="sm" onClick={onBack} className="min-h-[44px] bg-transparent">
-            ← Voltar
-          </Button>
-          <div>
-            <h1 className="text-xl md:text-2xl font-bold">Análise Semanal</h1>
-            <p className="text-sm text-muted-foreground">Visão geral do seu progresso</p>
+    <AppShell>
+      <PageHeader subtitle="Seu progresso" title="Análise" />
+
+      <div className="mb-5 grid grid-cols-3 rounded-2xl bg-neutral-100 p-1">
+        {RANGES.map((r) => (
+          <button
+            key={r.days}
+            type="button"
+            onClick={() => setRange(r.days)}
+            className={cn(
+              "pressable rounded-xl py-2 text-sm font-medium transition-all",
+              range === r.days ? "bg-white text-foreground shadow-sm" : "text-neutral-500",
+            )}
+          >
+            {r.label}
+          </button>
+        ))}
+      </div>
+
+      {habits.length === 0 ? (
+        <div className="rounded-3xl bg-neutral-50 p-8 text-center text-sm text-neutral-500">
+          Crie um hábito para ver seus gráficos aqui.
+        </div>
+      ) : (
+        <div className="space-y-4">
+          <div className="grid grid-cols-3 gap-2">
+            <Stat label="Concluído" value={`${periodRate}%`} />
+            <Stat label="Sequência" value={String(streak)} hint={streak === 1 ? "dia" : "dias"} />
+            <Stat label="Melhor dia" value={best.rate > 0 ? best.day : "—"} />
           </div>
+
+          <ChartCard
+            title="Tendência"
+            description={smooth ? "Média móvel de 7 dias" : "% dos hábitos feitos por dia"}
+          >
+            <ChartContainer config={trendConfig} className="aspect-auto h-44 w-full">
+              <AreaChart data={trend} margin={{ left: 0, right: 4, top: 8 }}>
+                <defs>
+                  <linearGradient id="fillRate" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="var(--color-rate)" stopOpacity={0.35} />
+                    <stop offset="95%" stopColor="var(--color-rate)" stopOpacity={0.02} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid vertical={false} />
+                <XAxis
+                  dataKey="label"
+                  tickLine={false}
+                  axisLine={false}
+                  tickMargin={8}
+                  minTickGap={28}
+                />
+                <YAxis hide domain={[0, 100]} />
+                <ChartTooltip
+                  cursor={false}
+                  content={<ChartTooltipContent labelKey="label" formatter={(v) => `${v}%`} />}
+                />
+                <Area
+                  dataKey="rate"
+                  type="monotone"
+                  stroke="var(--color-rate)"
+                  strokeWidth={2.5}
+                  fill="url(#fillRate)"
+                  animationDuration={700}
+                />
+              </AreaChart>
+            </ChartContainer>
+          </ChartCard>
+
+          <ChartCard title="Por dia da semana" description="Onde você é mais constante">
+            <ChartContainer config={weekdayConfig} className="aspect-auto h-40 w-full">
+              <BarChart data={weekdays} margin={{ left: 0, right: 0, top: 8 }}>
+                <CartesianGrid vertical={false} />
+                <XAxis dataKey="day" tickLine={false} axisLine={false} tickMargin={8} />
+                <YAxis hide domain={[0, 100]} />
+                <ChartTooltip
+                  cursor={false}
+                  content={<ChartTooltipContent labelKey="long" formatter={(v) => `${v}%`} />}
+                />
+                <Bar dataKey="rate" radius={8} animationDuration={600}>
+                  {weekdays.map((d) => (
+                    <Cell
+                      key={d.day}
+                      fill={d.day === best.day && best.rate > 0 ? "var(--chart-2)" : "var(--color-rate)"}
+                      fillOpacity={d.day === best.day && best.rate > 0 ? 1 : 0.85}
+                    />
+                  ))}
+                </Bar>
+              </BarChart>
+            </ChartContainer>
+          </ChartCard>
+
+          <ChartCard title="Hábitos" description={`Taxa nos últimos ${range} dias`}>
+            <ul className="space-y-3">
+              {ranking.map(({ habit, rate }) => (
+                <li key={habit.id}>
+                  <div className="mb-1.5 flex items-baseline justify-between gap-3 text-sm">
+                    <span className="truncate font-medium">{habit.name}</span>
+                    <span className="font-mono tabular-nums text-neutral-500">{rate}%</span>
+                  </div>
+                  <div className="h-2 overflow-hidden rounded-full bg-neutral-100">
+                    <div
+                      className="h-full rounded-full bg-black transition-[width] duration-700 ease-out"
+                      style={{ width: `${rate}%` }}
+                    />
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </ChartCard>
+
+          <ChartCard title="Constância" description="Últimas 15 semanas">
+            <Heatmap habits={habits} />
+          </ChartCard>
         </div>
+      )}
+    </AppShell>
+  )
+}
 
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 mb-6">
-          <Card className="p-3 md:p-4">
-            <div className="flex items-center gap-2 mb-2">
-              <Target className="w-4 h-4 text-orange-500" />
-              <span className="text-xs md:text-sm font-medium">Hoje</span>
-            </div>
-            <div className="text-xl md:text-2xl font-bold">{metrics.todayRate}%</div>
-          </Card>
+function Stat({ label, value, hint }: { label: string; value: string; hint?: string }) {
+  return (
+    <div className="rounded-2xl border border-neutral-200 p-3">
+      <p className="text-[11px] font-medium text-neutral-400">{label}</p>
+      <p className="mt-1 text-xl font-semibold tabular-nums">
+        {value}
+        {hint && <span className="ml-1 text-xs font-normal text-neutral-400">{hint}</span>}
+      </p>
+    </div>
+  )
+}
 
-          <Card className="p-3 md:p-4">
-            <div className="flex items-center gap-2 mb-2">
-              <Award className="w-4 h-4 text-green-500" />
-              <span className="text-xs md:text-sm font-medium">Sequência</span>
-            </div>
-            <div className="text-xl md:text-2xl font-bold">{metrics.currentStreak}</div>
-            <div className="text-xs text-muted-foreground">dias</div>
-          </Card>
+function ChartCard({
+  title,
+  description,
+  children,
+}: {
+  title: string
+  description?: string
+  children: React.ReactNode
+}) {
+  return (
+    <section className="rounded-3xl border border-neutral-200 p-4 animate-in fade-in slide-in-from-bottom-2 duration-500">
+      <h2 className="text-sm font-semibold">{title}</h2>
+      {description && <p className="mb-3 text-xs text-neutral-400">{description}</p>}
+      {children}
+    </section>
+  )
+}
 
-          <Card className="p-3 md:p-4">
-            <div className="flex items-center gap-2 mb-2">
-              <TrendingUp className="w-4 h-4 text-orange-500" />
-              <span className="text-xs md:text-sm font-medium">7 dias</span>
-            </div>
-            <div className="text-xl md:text-2xl font-bold">{metrics.weeklyRate}%</div>
-          </Card>
+/** Grade estilo GitHub: colunas = semanas, linhas = dias (dom a sáb). */
+function Heatmap({ habits }: { habits: Habit[] }) {
+  const weeks = 15
+  const today = new Date()
+  const start = addDays(today, -(weeks * 7 - 1) - (6 - today.getDay()))
+  const todayKey = toDateKey(today)
 
-          <Card className="p-3 md:p-4">
-            <div className="flex items-center gap-2 mb-2">
-              <Calendar className="w-4 h-4 text-green-500" />
-              <span className="text-xs md:text-sm font-medium">Melhor dia</span>
-            </div>
-            <div className="text-sm md:text-base font-bold">{metrics.bestDay}</div>
-          </Card>
-        </div>
+  const level = (rate: number | null) => {
+    if (!rate) return "bg-neutral-100"
+    if (rate < 34) return "bg-green-200"
+    if (rate < 67) return "bg-green-400"
+    if (rate < 100) return "bg-green-500"
+    return "bg-green-700"
+  }
 
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-lg">Desempenho da Semana</CardTitle>
-            <p className="text-sm text-muted-foreground">Porcentagem de hábitos completados por dia</p>
-          </CardHeader>
-          <CardContent>
-            <div className="h-64 md:h-80">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={chartData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                  <XAxis
-                    dataKey="day"
-                    stroke="hsl(var(--muted-foreground))"
-                    fontSize={12}
-                    tickLine={false}
-                    axisLine={false}
-                  />
-                  <YAxis
-                    stroke="hsl(var(--muted-foreground))"
-                    fontSize={12}
-                    tickLine={false}
-                    axisLine={false}
-                    domain={[0, 100]}
-                    tickFormatter={(value) => `${value}%`}
-                  />
-                  <Tooltip
-                    contentStyle={{
-                      backgroundColor: "hsl(var(--card))",
-                      border: "1px solid hsl(var(--border))",
-                      borderRadius: "8px",
-                    }}
-                    formatter={(
-                      value: number,
-                      name: string,
-                      props: { payload?: { completed: number; total: number } },
-                    ) => {
-                      const completed = props?.payload?.completed || 0
-                      const total = props?.payload?.total || 0
-                      return [`${value}% (${completed}/${total})`, "Completados"]
-                    }}
-                  />
-                  <Bar dataKey="performance" fill="#f97316" radius={[4, 4, 0, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          </CardContent>
-        </Card>
-
-        {habits.length === 0 && (
-          <Card className="mt-4">
-            <CardContent className="text-center py-8">
-              <p className="text-muted-foreground">Adicione alguns hábitos para ver a análise de desempenho.</p>
-            </CardContent>
-          </Card>
-        )}
+  return (
+    <div>
+      <div className="grid grid-flow-col grid-rows-7 gap-[3px]">
+        {Array.from({ length: weeks * 7 }, (_, i) => {
+          const d = addDays(start, i)
+          const key = toDateKey(d)
+          const future = key > todayKey
+          const rate = future ? null : dayRate(habits, key)
+          return (
+            <div
+              key={key}
+              title={`${d.toLocaleDateString("pt-BR")}: ${rate ?? 0}%`}
+              className={cn("aspect-square rounded-[4px]", future ? "bg-transparent" : level(rate))}
+            />
+          )
+        })}
+      </div>
+      <div className="mt-3 flex items-center justify-end gap-1 text-[10px] text-neutral-400">
+        menos
+        {["bg-neutral-100", "bg-green-200", "bg-green-400", "bg-green-500", "bg-green-700"].map((c) => (
+          <span key={c} className={cn("h-2.5 w-2.5 rounded-[3px]", c)} />
+        ))}
+        mais
       </div>
     </div>
   )

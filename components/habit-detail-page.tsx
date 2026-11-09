@@ -1,352 +1,221 @@
 "use client"
 
-import { toDateKey } from "@/lib/dates"
-import { useState } from "react"
+import { useMemo, useState } from "react"
+import { ArrowLeft, Check, ChevronLeft, ChevronRight, Pencil, Trash2, X } from "lucide-react"
+import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from "recharts"
+import { AppShell, BottomSheet, IconButton, PageHeader } from "@/components/app-shell"
+import { ChartContainer, ChartTooltip, ChartTooltipContent, type ChartConfig } from "@/components/ui/chart"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { ChevronLeft, ChevronRight, TrendingUp, Target, Award, Calendar } from "lucide-react"
-import { Line, LineChart, ResponsiveContainer, XAxis, YAxis, CartesianGrid, Tooltip } from "recharts"
-
+import { addDays, toDateKey } from "@/lib/dates"
+import { bestStreak, currentStreak, habitRate, lastDays, toggleDay } from "@/lib/stats"
 import type { Habit } from "@/lib/types"
+import { cn } from "@/lib/utils"
 
 interface HabitDetailPageProps {
   habit: Habit
   onUpdate: (habit: Habit) => void
   onBack: () => void
+  onDelete?: (id: string) => void
 }
 
-export function HabitDetailPage({ habit, onUpdate, onBack }: HabitDetailPageProps) {
-  const [currentDate, setCurrentDate] = useState(new Date())
+const MONTHS = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"]
+const WEEK = ["D", "S", "T", "Q", "Q", "S", "S"]
+const weeklyConfig = { done: { label: "Dias feitos", color: "var(--chart-2)" } } satisfies ChartConfig
 
-  const getDaysInMonth = (date: Date) => {
-    const year = date.getFullYear()
-    const month = date.getMonth()
-    const firstDay = new Date(year, month, 1)
-    const lastDay = new Date(year, month + 1, 0)
-    const daysInMonth = lastDay.getDate()
-    const startingDayOfWeek = firstDay.getDay()
+export function HabitDetailPage({ habit, onUpdate, onBack, onDelete }: HabitDetailPageProps) {
+  const [month, setMonth] = useState(() => {
+    const d = new Date()
+    return new Date(d.getFullYear(), d.getMonth(), 1)
+  })
+  const [editing, setEditing] = useState(false)
+  const [name, setName] = useState(habit.name)
+  const [confirmDelete, setConfirmDelete] = useState(false)
+  const todayKey = toDateKey(new Date())
 
-    const days = []
-
-    // Add empty cells for days before the first day of the month
-    for (let i = 0; i < startingDayOfWeek; i++) {
-      days.push(null)
-    }
-
-    // Add all days of the month
-    for (let day = 1; day <= daysInMonth; day++) {
-      days.push(new Date(year, month, day))
-    }
-
-    return days
-  }
-
-  const toggleDay = (date: Date) => {
-    const dateString = toDateKey(date)
-    const currentStatus = habit.completions[dateString]
-    let newStatus: boolean | undefined
-
-    if (currentStatus === undefined) {
-      newStatus = true
-    } else if (currentStatus === true) {
-      newStatus = false
-    } else {
-      newStatus = undefined
-    }
-
-    const updatedCompletions = { ...habit.completions }
-    if (newStatus === undefined) {
-      delete updatedCompletions[dateString]
-    } else {
-      updatedCompletions[dateString] = newStatus
-    }
-
-    onUpdate({ ...habit, completions: updatedCompletions })
-  }
-
-  const getStatusIcon = (date: Date) => {
-    const dateString = toDateKey(date)
-    const completion = habit.completions[dateString]
-    if (completion === true) return "✅"
-    if (completion === false) return "❌"
-    return "⚪️"
-  }
-
-  const navigateMonth = (direction: "prev" | "next") => {
-    const newDate = new Date(currentDate)
-    if (direction === "prev") {
-      newDate.setMonth(newDate.getMonth() - 1)
-    } else {
-      newDate.setMonth(newDate.getMonth() + 1)
-    }
-    setCurrentDate(newDate)
-  }
-
-  const getHabitChartData = () => {
-    const data = []
+  const weekly = useMemo(() => {
     const today = new Date()
+    const thisSunday = addDays(today, -today.getDay())
+    return Array.from({ length: 8 }, (_, i) => {
+      const start = addDays(thisSunday, (i - 7) * 7)
+      const done = Array.from({ length: 7 }, (_, j) => toDateKey(addDays(start, j))).filter(
+        (k) => habit.completions[k] === true,
+      ).length
+      return { label: start.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" }), done }
+    })
+  }, [habit.completions])
 
-    for (let i = 13; i >= 0; i--) {
-      const date = new Date(today)
-      date.setDate(date.getDate() - i * 2) // A cada 2 dias para melhor visualização
-      const dateString = toDateKey(date)
-      const completion = habit.completions[dateString]
+  const firstWeekday = month.getDay()
+  const daysInMonth = new Date(month.getFullYear(), month.getMonth() + 1, 0).getDate()
+  const isCurrentMonth =
+    month.getFullYear() === new Date().getFullYear() && month.getMonth() === new Date().getMonth()
 
-      data.push({
-        date: date.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" }),
-        value: completion === true ? 100 : completion === false ? 0 : null,
-      })
-    }
-
-    return data
+  const saveName = () => {
+    const trimmed = name.trim()
+    if (trimmed && trimmed !== habit.name) onUpdate({ ...habit, name: trimmed })
+    else setName(habit.name)
+    setEditing(false)
   }
-
-  const getHabitMetrics = () => {
-    const today = new Date()
-
-    // Streak atual
-    let currentStreak = 0
-    for (let i = 0; i < 365; i++) {
-      const date = new Date(today)
-      date.setDate(date.getDate() - i)
-      const dateString = toDateKey(date)
-
-      if (habit.completions[dateString] === true) {
-        currentStreak++
-      } else {
-        break
-      }
-    }
-
-    // Melhor streak
-    let bestStreak = 0
-    let tempStreak = 0
-    for (let i = 365; i >= 0; i--) {
-      const date = new Date(today)
-      date.setDate(date.getDate() - i)
-      const dateString = toDateKey(date)
-
-      if (habit.completions[dateString] === true) {
-        tempStreak++
-        bestStreak = Math.max(bestStreak, tempStreak)
-      } else {
-        tempStreak = 0
-      }
-    }
-
-    // Taxa de sucesso dos últimos 30 dias
-    let completed = 0
-    const total = 30
-    for (let i = 0; i < 30; i++) {
-      const date = new Date(today)
-      date.setDate(date.getDate() - i)
-      const dateString = toDateKey(date)
-
-      if (habit.completions[dateString] === true) {
-        completed++
-      }
-    }
-    const successRate = Math.round((completed / total) * 100)
-
-    // Dias este mês
-    const thisMonth = currentDate.getMonth()
-    const thisYear = currentDate.getFullYear()
-    const daysInMonth = new Date(thisYear, thisMonth + 1, 0).getDate()
-    let monthCompleted = 0
-
-    for (let day = 1; day <= daysInMonth; day++) {
-      const date = new Date(thisYear, thisMonth, day)
-      const dateString = toDateKey(date)
-      if (habit.completions[dateString] === true) {
-        monthCompleted++
-      }
-    }
-
-    return { currentStreak, bestStreak, successRate, monthCompleted, daysInMonth }
-  }
-
-  const monthNames = [
-    "Janeiro",
-    "Fevereiro",
-    "Março",
-    "Abril",
-    "Maio",
-    "Junho",
-    "Julho",
-    "Agosto",
-    "Setembro",
-    "Outubro",
-    "Novembro",
-    "Dezembro",
-  ]
-
-  const dayNames = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"]
-
-  const metrics = getHabitMetrics()
 
   return (
-    <div className="min-h-screen bg-background p-4">
-      <div className="max-w-4xl mx-auto">
-        <div className="flex items-center gap-3 mb-6">
-          <Button variant="outline" size="sm" onClick={onBack} className="min-h-[44px] bg-transparent">
-            ← Voltar
-          </Button>
-          <div className="flex-1">
-            <h1 className="text-lg md:text-2xl font-bold truncate">{habit.name}</h1>
-            <p className="text-sm text-muted-foreground">Detalhes e análise individual</p>
-          </div>
-        </div>
+    <AppShell nav={false}>
+      <PageHeader
+        subtitle="Hábito"
+        title={
+          editing ? (
+            <input
+              autoFocus
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              onBlur={saveName}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") saveName()
+                if (e.key === "Escape") {
+                  setName(habit.name)
+                  setEditing(false)
+                }
+              }}
+              className="w-full border-b-2 border-black bg-transparent outline-none"
+            />
+          ) : (
+            habit.name
+          )
+        }
+        left={
+          <IconButton aria-label="Voltar" onClick={onBack} className="-ml-2">
+            <ArrowLeft className="h-5 w-5" />
+          </IconButton>
+        }
+        right={
+          <>
+            <IconButton aria-label="Renomear" onClick={() => setEditing(true)}>
+              <Pencil className="h-[18px] w-[18px]" />
+            </IconButton>
+            {onDelete && (
+              <IconButton aria-label="Excluir" onClick={() => setConfirmDelete(true)} className="text-red-500">
+                <Trash2 className="h-[18px] w-[18px]" />
+              </IconButton>
+            )}
+          </>
+        }
+      />
 
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 mb-6">
-          <Card className="p-3 md:p-4">
-            <div className="flex items-center gap-2 mb-2">
-              <Award className="w-4 h-4 text-green-500" />
-              <span className="text-xs md:text-sm font-medium">Sequência</span>
-            </div>
-            <div className="text-xl md:text-2xl font-bold">{metrics.currentStreak}</div>
-            <div className="text-xs text-muted-foreground">dias</div>
-          </Card>
-
-          <Card className="p-3 md:p-4">
-            <div className="flex items-center gap-2 mb-2">
-              <Target className="w-4 h-4 text-orange-500" />
-              <span className="text-xs md:text-sm font-medium">Recorde</span>
-            </div>
-            <div className="text-xl md:text-2xl font-bold">{metrics.bestStreak}</div>
-            <div className="text-xs text-muted-foreground">dias</div>
-          </Card>
-
-          <Card className="p-3 md:p-4">
-            <div className="flex items-center gap-2 mb-2">
-              <TrendingUp className="w-4 h-4 text-green-500" />
-              <span className="text-xs md:text-sm font-medium">30 dias</span>
-            </div>
-            <div className="text-xl md:text-2xl font-bold">{metrics.successRate}%</div>
-          </Card>
-
-          <Card className="p-3 md:p-4">
-            <div className="flex items-center gap-2 mb-2">
-              <Calendar className="w-4 h-4 text-orange-500" />
-              <span className="text-xs md:text-sm font-medium">Este mês</span>
-            </div>
-            <div className="text-xl md:text-2xl font-bold">{metrics.monthCompleted}</div>
-            <div className="text-xs text-muted-foreground">de {metrics.daysInMonth}</div>
-          </Card>
-        </div>
-
-        <div className="grid gap-6 lg:grid-cols-2">
-          <Card className="floating-card">
-            <CardHeader className="pb-3">
-              <div className="flex items-center justify-between">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => navigateMonth("prev")}
-                  className="min-h-[44px] min-w-[44px]"
-                >
-                  <ChevronLeft className="w-4 h-4" />
-                </Button>
-                <CardTitle className="text-base md:text-lg">
-                  {monthNames[currentDate.getMonth()]} {currentDate.getFullYear()}
-                </CardTitle>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => navigateMonth("next")}
-                  className="min-h-[44px] min-w-[44px]"
-                >
-                  <ChevronRight className="w-4 h-4" />
-                </Button>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-7 gap-1 mb-3">
-                {dayNames.map((day) => (
-                  <div key={day} className="text-center text-xs font-medium text-muted-foreground p-2">
-                    {day}
-                  </div>
-                ))}
-              </div>
-              <div className="grid grid-cols-7 gap-1">
-                {getDaysInMonth(currentDate).map((date, index) => (
-                  <div key={index} className="aspect-square">
-                    {date ? (
-                      <Button
-                        variant="ghost"
-                        className="w-full h-full flex flex-col items-center justify-center text-xs min-h-[44px]"
-                        onClick={() => toggleDay(date)}
-                      >
-                        <span className="text-xs mb-1">{date.getDate()}</span>
-                        <span className="text-sm">{getStatusIcon(date)}</span>
-                      </Button>
-                    ) : (
-                      <div />
-                    )}
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="floating-card">
-            <CardHeader className="pb-3">
-              <CardTitle className="flex items-center gap-2 text-base md:text-lg">
-                <TrendingUp className="w-4 h-4 text-primary" />
-                Tendência (últimas 2 semanas)
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="h-48 md:h-64 w-full">
-                <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={getHabitChartData()}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                    <XAxis
-                      dataKey="date"
-                      stroke="hsl(var(--muted-foreground))"
-                      fontSize={11}
-                      tickLine={false}
-                      axisLine={false}
-                    />
-                    <YAxis
-                      stroke="hsl(var(--muted-foreground))"
-                      fontSize={11}
-                      tickLine={false}
-                      axisLine={false}
-                      domain={[0, 100]}
-                      tickFormatter={(value) => (value === 100 ? "✓" : value === 0 ? "✗" : "")}
-                    />
-                    <Tooltip
-                      contentStyle={{
-                        backgroundColor: "hsl(var(--card))",
-                        border: "1px solid hsl(var(--border))",
-                        borderRadius: "8px",
-                      }}
-                      formatter={(value) => [
-                        value === 100 ? "Feito" : value === 0 ? "Não feito" : "Não marcado",
-                        "Status",
-                      ]}
-                    />
-                    <Line
-                      type="monotone"
-                      dataKey="value"
-                      stroke="#f97316"
-                      strokeWidth={3}
-                      dot={{ fill: "#f97316", strokeWidth: 2, r: 4 }}
-                      connectNulls={false}
-                    />
-                  </LineChart>
-                </ResponsiveContainer>
-              </div>
-              <div className="flex justify-center gap-6 mt-4">
-                <div className="flex items-center gap-2">
-                  <div className="w-3 h-3 bg-orange-500 rounded-full"></div>
-                  <span className="text-sm text-muted-foreground">Progresso</span>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+      <div className="grid grid-cols-3 gap-2">
+        <Stat label="Sequência" value={currentStreak(habit)} unit="dias" />
+        <Stat label="Recorde" value={bestStreak(habit)} unit="dias" />
+        <Stat label="30 dias" value={habitRate(habit, lastDays(30))} unit="%" />
       </div>
+
+      <section className="mt-4 rounded-3xl border border-neutral-200 p-4">
+        <div className="mb-3 flex items-center justify-between">
+          <IconButton
+            aria-label="Mês anterior"
+            onClick={() => setMonth(new Date(month.getFullYear(), month.getMonth() - 1, 1))}
+          >
+            <ChevronLeft className="h-5 w-5" />
+          </IconButton>
+          <h2 className="text-sm font-semibold">
+            {MONTHS[month.getMonth()]} {month.getFullYear()}
+          </h2>
+          <IconButton
+            aria-label="Próximo mês"
+            disabled={isCurrentMonth}
+            className="disabled:opacity-20"
+            onClick={() => setMonth(new Date(month.getFullYear(), month.getMonth() + 1, 1))}
+          >
+            <ChevronRight className="h-5 w-5" />
+          </IconButton>
+        </div>
+
+        <div className="grid grid-cols-7 gap-1.5 text-center">
+          {WEEK.map((d, i) => (
+            <span key={i} className="pb-1 text-[11px] font-medium text-neutral-400">
+              {d}
+            </span>
+          ))}
+          {Array.from({ length: firstWeekday }, (_, i) => (
+            <span key={`e${i}`} />
+          ))}
+          {Array.from({ length: daysInMonth }, (_, i) => {
+            const key = toDateKey(new Date(month.getFullYear(), month.getMonth(), i + 1))
+            const status = habit.completions[key]
+            const future = key > todayKey
+            return (
+              <button
+                key={key}
+                type="button"
+                disabled={future}
+                onClick={() => {
+                  try {
+                    navigator.vibrate?.(8)
+                  } catch {}
+                  onUpdate(toggleDay(habit, key))
+                }}
+                aria-label={`Dia ${i + 1}`}
+                className={cn(
+                  "pressable relative flex aspect-square items-center justify-center rounded-full text-sm font-medium transition-colors disabled:opacity-25",
+                  status === true && "bg-green-500 text-white",
+                  status === false && "bg-red-500 text-white",
+                  status === undefined && "hover:bg-neutral-100",
+                  key === todayKey && status === undefined && "ring-2 ring-black",
+                )}
+              >
+                {status === true ? (
+                  <Check className="h-4 w-4" strokeWidth={3} />
+                ) : status === false ? (
+                  <X className="h-4 w-4" strokeWidth={3} />
+                ) : (
+                  i + 1
+                )}
+              </button>
+            )
+          })}
+        </div>
+      </section>
+
+      <section className="mt-4 rounded-3xl border border-neutral-200 p-4">
+        <h2 className="text-sm font-semibold">Por semana</h2>
+        <p className="mb-3 text-xs text-neutral-400">Dias feitos nas últimas 8 semanas</p>
+        <ChartContainer config={weeklyConfig} className="aspect-auto h-40 w-full">
+          <BarChart data={weekly} margin={{ left: 0, right: 0, top: 8 }}>
+            <CartesianGrid vertical={false} />
+            <XAxis dataKey="label" tickLine={false} axisLine={false} tickMargin={8} minTickGap={8} />
+            <YAxis hide domain={[0, 7]} />
+            <ChartTooltip
+              cursor={false}
+              content={<ChartTooltipContent labelKey="label" formatter={(v) => `${v} de 7`} />}
+            />
+            <Bar dataKey="done" fill="var(--color-done)" radius={8} animationDuration={600} />
+          </BarChart>
+        </ChartContainer>
+      </section>
+
+      <BottomSheet open={confirmDelete} onClose={() => setConfirmDelete(false)}>
+        <h2 className="text-lg font-semibold">Excluir &quot;{habit.name}&quot;?</h2>
+        <p className="mt-1 text-sm text-neutral-500">Todo o histórico deste hábito será apagado.</p>
+        <div className="mt-5 flex flex-col gap-2 pb-2">
+          <Button
+            className="h-12 rounded-2xl bg-red-600 text-base hover:bg-red-700"
+            onClick={() => onDelete?.(habit.id)}
+          >
+            Excluir hábito
+          </Button>
+          <Button variant="ghost" className="h-12 rounded-2xl text-base" onClick={() => setConfirmDelete(false)}>
+            Cancelar
+          </Button>
+        </div>
+      </BottomSheet>
+    </AppShell>
+  )
+}
+
+function Stat({ label, value, unit }: { label: string; value: number; unit: string }) {
+  return (
+    <div className="rounded-2xl border border-neutral-200 p-3">
+      <p className="text-[11px] font-medium text-neutral-400">{label}</p>
+      <p className="mt-1 text-xl font-semibold tabular-nums">
+        {value}
+        <span className="ml-0.5 text-xs font-normal text-neutral-400">{unit}</span>
+      </p>
     </div>
   )
 }

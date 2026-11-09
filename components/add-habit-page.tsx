@@ -1,88 +1,75 @@
 "use client"
 
-import type React from "react"
-
 import { useState } from "react"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Label } from "@/components/ui/label"
-import { ArrowLeft, Plus } from "lucide-react"
+import { ArrowLeft } from "lucide-react"
+import { AppShell, IconButton, PageHeader } from "@/components/app-shell"
 
 interface AddHabitPageProps {
   onAdd: (name: string) => void
   onCancel: () => void
 }
 
-export function AddHabitPage({ onAdd, onCancel }: AddHabitPageProps) {
-  const [habitName, setHabitName] = useState("")
+const SUGGESTIONS = ["Ler 1 página", "Beber 1 copo de água", "1 flexão", "Orar 2 minutos", "Escrever 1 frase"]
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
-    if (habitName.trim()) {
-      onAdd(habitName.trim())
-    }
-  }
+export function AddHabitPage({ onAdd, onCancel }: AddHabitPageProps) {
+  const [name, setName] = useState("")
+  const valid = name.trim().length > 0
 
   return (
-    <div className="min-h-screen bg-background p-3 sm:p-4">
-      <div className="max-w-md mx-auto">
-        <div className="flex items-center gap-3 mb-6">
-          <Button variant="ghost" size="sm" onClick={onCancel} className="min-h-[44px] min-w-[44px] p-2">
-            <ArrowLeft className="w-5 h-5" />
-          </Button>
-          <div>
-            <h1 className="text-xl sm:text-2xl font-bold">Novo Hábito</h1>
-            <p className="text-sm text-muted-foreground">Crie um novo hábito para acompanhar</p>
-          </div>
+    <AppShell nav={false}>
+      <PageHeader
+        subtitle="Novo hábito"
+        title="O que é ridículo de fácil?"
+        left={
+          <IconButton aria-label="Voltar" onClick={onCancel} className="-ml-2">
+            <ArrowLeft className="h-5 w-5" />
+          </IconButton>
+        }
+      />
+
+      <form
+        onSubmit={(e) => {
+          e.preventDefault()
+          if (valid) onAdd(name.trim())
+        }}
+      >
+        <input
+          autoFocus
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          placeholder="Ex: Ler 1 página"
+          maxLength={60}
+          className="w-full border-b-2 border-neutral-200 bg-transparent pb-3 text-2xl font-semibold outline-none transition-colors placeholder:text-neutral-300 focus:border-black"
+        />
+
+        <p className="mt-6 text-xs font-medium uppercase tracking-wider text-neutral-400">Sugestões</p>
+        <div className="mt-3 flex flex-wrap gap-2">
+          {SUGGESTIONS.map((s) => (
+            <button
+              key={s}
+              type="button"
+              onClick={() => setName(s)}
+              className="pressable rounded-full bg-neutral-100 px-4 py-2 text-sm font-medium text-neutral-700 hover:bg-neutral-200"
+            >
+              {s}
+            </button>
+          ))}
         </div>
 
-        <Card className="floating-card border-0 shadow-lg">
-          <CardHeader className="pb-4">
-            <CardTitle className="flex items-center gap-2">
-              <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center">
-                <Plus className="w-4 h-4 text-primary" />
-              </div>
-              Cadastro de Hábito
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-6">
-              <div className="space-y-3">
-                <Label htmlFor="habitName" className="text-base font-medium">
-                  Nome do Hábito
-                </Label>
-                <Input
-                  id="habitName"
-                  value={habitName}
-                  onChange={(e) => setHabitName(e.target.value)}
-                  placeholder="Ex: Beber 2 copos de água"
-                  required
-                  className="min-h-[48px] text-base"
-                />
-                <p className="text-xs text-muted-foreground">
-                  Dica: Seja específico e comece pequeno. {'Ler 1 página" é melhor que "Ler mais"'}.
-                </p>
-              </div>
-              <div className="flex flex-col sm:flex-row gap-3">
-                <Button type="submit" className="flex-1 min-h-[48px] shadow-lg" disabled={!habitName.trim()}>
-                  <Plus className="w-4 h-4 mr-2" />
-                  Cadastrar Hábito
-                </Button>
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={onCancel}
-                  className="flex-1 bg-transparent min-h-[48px]"
-                >
-                  <ArrowLeft className="w-4 h-4 mr-2" />
-                  Cancelar
-                </Button>
-              </div>
-            </form>
-          </CardContent>
-        </Card>
-      </div>
-    </div>
+        <p className="mt-8 rounded-2xl bg-neutral-50 p-4 text-sm leading-relaxed text-neutral-500">
+          Seja específico e comece pequeno. A consistência supera a intensidade.
+        </p>
+
+        <div className="safe-bottom fixed inset-x-0 bottom-0 mx-auto w-full max-w-md px-5 sm:absolute">
+          <button
+            type="submit"
+            disabled={!valid}
+            className="pressable h-14 w-full rounded-2xl bg-black text-base font-semibold text-white disabled:bg-neutral-200 disabled:text-neutral-400"
+          >
+            Criar hábito
+          </button>
+        </div>
+      </form>
+    </AppShell>
   )
 }

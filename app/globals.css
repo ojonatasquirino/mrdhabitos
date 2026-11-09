@@ -13,19 +13,19 @@
   --popover-foreground: #000000;
   --primary: #000000;
   --primary-foreground: #ffffff;
-  --secondary: #ffffff;
+  --secondary: #f4f4f5;
   --secondary-foreground: #000000;
-  --muted: #ffffff;
+  --muted: #f4f4f5;
   --muted-foreground: #666666;
-  --accent: #ffffff;
+  --accent: #f4f4f5;
   --accent-foreground: #000000;
   --destructive: #dc2626;
   --destructive-foreground: #ffffff;
   --border: #e5e5e5;
   --input: #ffffff;
   --ring: rgba(0, 0, 0, 0.1);
-  --chart-1: #000000;
-  --chart-2: #666666;
+  --chart-1: #0a0a0a;
+  --chart-2: #22c55e;
   --chart-3: #999999;
   --chart-4: #cccccc;
   --chart-5: #f5f5f5;
@@ -121,4 +121,37 @@
   .habit-day:hover {
     transform: scale(1.1);
   }
+}
+
+
+/* ---------- app feel ---------- */
+html {
+  -webkit-tap-highlight-color: transparent;
+  overscroll-behavior-y: none;
+}
+body {
+  -webkit-font-smoothing: antialiased;
+}
+.pressable {
+  transition: transform 120ms ease, background-color 160ms ease, box-shadow 160ms ease;
+}
+.pressable:active {
+  transform: scale(0.96);
+}
+@keyframes pop {
+  0% { transform: scale(1); }
+  40% { transform: scale(1.22); }
+  100% { transform: scale(1); }
+}
+.animate-pop {
+  animation: pop 260ms cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.safe-bottom {
+  padding-bottom: max(env(safe-area-inset-bottom), 12px);
+}
+.safe-top {
+  padding-top: max(env(safe-area-inset-top), 16px);
+}
+@media (prefers-reduced-motion: reduce) {
+  .animate-pop, .pressable { animation: none; transition: none; }
 }

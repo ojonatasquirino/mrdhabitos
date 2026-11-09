@@ -1,278 +1,239 @@
 "use client"
 
-import { useState, useRef } from "react"
+import { useMemo, useState } from "react"
 import Link from "next/link"
-import { useRouter } from "next/navigation"
+import { Check, ChevronRight, Flame, LogOut, Plus, X } from "lucide-react"
+import { AppShell, IconButton, PageHeader } from "@/components/app-shell"
+import { ReminderButton } from "@/components/reminder-button"
 import { useHabits } from "@/hooks/use-habits"
 import { useAuth } from "@/hooks/use-auth"
-import { ReminderButton } from "@/components/reminder-button"
-import { getWeekDays as weekDaysOf, WEEKDAY_INITIALS } from "@/lib/dates"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Edit2, Trash2, Plus, BarChart3, TrendingUp, LogOut } from "lucide-react"
-
+import { getWeekDays, toDateKey, WEEKDAY_INITIALS } from "@/lib/dates"
+import { currentStreak, toggleDay } from "@/lib/stats"
 import type { Habit } from "@/lib/types"
+import { cn } from "@/lib/utils"
+
+function haptic() {
+  try {
+    navigator.vibrate?.(8)
+  } catch {}
+}
 
 export function HomePage() {
-  const router = useRouter()
-  const { habits, ready, updateHabit, deleteHabit } = useHabits()
+  const { habits, ready, updateHabit } = useHabits()
   const { user, enabled: authEnabled, logout } = useAuth()
-  const [editingHabitId, setEditingHabitId] = useState<string | null>(null)
-  const [editHabitName, setEditHabitName] = useState("")
-  const editInputRef = useRef<HTMLInputElement>(null)
+  const today = new Date()
+  const todayKey = toDateKey(today)
+  const weekDays = useMemo(() => getWeekDays(), [])
 
-  const getWeekDays = () => weekDaysOf()
+  const doneToday = habits.filter((h) => h.completions[todayKey] === true).length
+  const pct = habits.length ? Math.round((doneToday / habits.length) * 100) : 0
+  const firstName = user?.displayName?.split(" ")[0]
+  const dateLabel = today.toLocaleDateString("pt-BR", { weekday: "long", day: "numeric", month: "long" })
 
-  const getHabitProgress = (habit: Habit) => {
-    const weekDays = getWeekDays()
-    const completedDays = weekDays.filter((date) => habit.completions[date] === true).length
-    return { completed: completedDays, total: 7, percentage: (completedDays / 7) * 100 }
-  }
-
-  const CircularProgress = ({ percentage, size = 40 }: { percentage: number; size?: number }) => {
-    const radius = (size - 4) / 2
-    const circumference = radius * 2 * Math.PI
-    const strokeDashoffset = circumference - (percentage / 100) * circumference
-
-    return (
-      <div className="relative inline-flex items-center justify-center">
-        <svg width={size} height={size} className="transform -rotate-90">
-          <circle
-            cx={size / 2}
-            cy={size / 2}
-            r={radius}
-            stroke="currentColor"
-            strokeWidth="2"
-            fill="transparent"
-            className="text-muted"
-          />
-          <circle
-            cx={size / 2}
-            cy={size / 2}
-            r={radius}
-            stroke="currentColor"
-            strokeWidth="2"
-            fill="transparent"
-            strokeDasharray={circumference}
-            strokeDashoffset={strokeDashoffset}
-            className="text-primary progress-ring"
-            strokeLinecap="round"
-          />
-        </svg>
-        <span className="absolute text-xs font-semibold text-foreground">{Math.round(percentage)}%</span>
-      </div>
-    )
-  }
-
-  const HabitDayIndicator = ({ habit, date, dayName }: { habit: Habit; date: string; dayName: string }) => {
-    const completion = habit.completions[date]
-    let bgColor = "bg-muted"
-    let textColor = "text-muted-foreground"
-    let icon = "○"
-
-    if (completion === true) {
-      bgColor = "bg-green-500"
-      textColor = "text-white"
-      icon = "✓"
-    } else if (completion === false) {
-      bgColor = "bg-red-500"
-      textColor = "text-white"
-      icon = "✕"
-    }
-
-    return (
-      <div className="flex flex-col items-center gap-1">
-        <span className="text-xs font-medium text-muted-foreground">{dayName}</span>
-        <div
-          className={`w-8 h-8 rounded-full ${bgColor} ${textColor} flex items-center justify-center text-sm font-semibold habit-day cursor-pointer`}
-        >
-          {icon}
-        </div>
-      </div>
-    )
-  }
-
-  const getDayName = (index: number) => WEEKDAY_INITIALS[index]
-
-  const startEditing = (habit: Habit) => {
-    setEditingHabitId(habit.id);
-    setEditHabitName(habit.name);
-    // Focus the input in the next tick after it's rendered
-    setTimeout(() => editInputRef.current?.focus(), 0);
-  };
-
-  const saveEdit = (habit: Habit) => {
-    if (editHabitName.trim()) {
-      const updatedHabit = { ...habit, name: editHabitName.trim() };
-      updateHabit(updatedHabit);
-    }
-    setEditingHabitId(null);
-  };
-
-  const handleKeyDown = (e: React.KeyboardEvent, habit: Habit) => {
-    if (e.key === 'Enter') {
-      saveEdit(habit);
-    } else if (e.key === 'Escape') {
-      setEditingHabitId(null);
-    }
-  };
-
-  const confirmDelete = (habit: Habit) => {
-    if (window.confirm(`Excluir "${habit.name}"? O histórico será perdido.`)) deleteHabit(habit.id)
+  const toggle = (habit: Habit, key: string) => {
+    haptic()
+    updateHabit(toggleDay(habit, key))
   }
 
   if (!ready) {
-    return <div className="min-h-screen bg-background" aria-busy="true" />
+    return (
+      <AppShell>
+        <div className="space-y-4 pt-16">
+          {[0, 1, 2].map((i) => (
+            <div key={i} className="h-28 animate-pulse rounded-3xl bg-neutral-100" />
+          ))}
+        </div>
+      </AppShell>
+    )
   }
 
   return (
-    <div className="min-h-screen bg-background p-3 sm:p-4">
-      <div className="max-w-4xl mx-auto">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 sm:mb-8 gap-4">
-          <div className="text-center sm:text-left">
-            <h1 className="text-3xl sm:text-4xl font-bold text-foreground">MRD</h1>
-            <p className="text-base sm:text-lg text-muted-foreground mt-1 font-medium">
-              {user?.displayName
-                ? `${user.displayName.split(" ")[0]}, faça o mínimo ridículo hoje.`
-                : "Faça o mínimo ridículo diariamente. Este é o segredo."}
-            </p>
-          </div>
-          <div className="flex gap-2 sm:gap-3 justify-center sm:justify-end">
+    <AppShell>
+      <PageHeader
+        subtitle={dateLabel}
+        title={firstName ? `Olá, ${firstName}` : "Hoje"}
+        right={
+          <>
             <ReminderButton habits={habits} />
-            <Button asChild variant="outline" size="sm" className="shadow-sm flex-1 sm:flex-none min-h-[44px]">
-              <Link href="/analise"><BarChart3 className="w-4 h-4 sm:mr-2" />
-              <span className="hidden sm:inline">Análise</span></Link>
-            </Button>
             {authEnabled && user && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => logout()}
-                aria-label="Sair"
-                className="shadow-sm bg-transparent flex-1 sm:flex-none min-h-[44px]"
-              >
-                <LogOut className="w-4 h-4 sm:mr-2" />
-                <span className="hidden sm:inline">Sair</span>
-              </Button>
+              <IconButton aria-label="Sair" onClick={() => logout()} className="text-neutral-400">
+                <LogOut className="h-5 w-5" />
+              </IconButton>
             )}
-          </div>
-        </div>
+          </>
+        }
+      />
 
-        <div className="space-y-4 sm:space-y-6">
-          {habits.length === 0 ? (
-            <Card className="floating-card gradient-card border-0">
-              <CardContent className="text-center py-8 sm:py-12 px-4">
-                <div className="w-12 h-12 sm:w-16 sm:h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <Plus className="w-6 h-6 sm:w-8 sm:h-8 text-primary" />
-                </div>
-                <h3 className="text-lg font-semibold mb-2">Comece sua jornada</h3>
-                <p className="text-muted-foreground mb-6 text-sm sm:text-base">
-                  Nenhum hábito cadastrado ainda. Que tal começar com algo pequeno?
-                </p>
-                <Button
-                  onClick={() => router.push("/novo")}
-                  size="lg"
-                  className="shadow-lg w-full sm:w-auto min-h-[48px]"
-                >
-                  <Plus className="w-4 h-4 mr-2" />
-                  Criar Primeiro Hábito
-                </Button>
-              </CardContent>
-            </Card>
-          ) : (
-            <>
-              {habits.map((habit) => {
-                const progress = getHabitProgress(habit)
-                const weekDays = getWeekDays()
+      {habits.length === 0 ? (
+        <EmptyState />
+      ) : (
+        <>
+          <TodaySummary pct={pct} done={doneToday} total={habits.length} />
 
-                return (
-                  <Card key={habit.id} className="floating-card gradient-card border-0 overflow-hidden">
-                    <CardHeader className="pb-3 sm:pb-4">
-                      <CardTitle className="flex items-start sm:items-center justify-between gap-3">
-                        <div className="flex items-center gap-3 sm:gap-4 flex-1 min-w-0">
-                          <CircularProgress percentage={progress.percentage} size={40} />
-                          <div className="flex-1 min-w-0">
-                            <h3 className="text-lg sm:text-xl font-semibold text-balance leading-tight">
-                              {editingHabitId === habit.id ? (
-                                <input
-                                  ref={editInputRef}
-                                  type="text"
-                                  value={editHabitName}
-                                  onChange={(e) => setEditHabitName(e.target.value)}
-                                  onKeyDown={(e) => handleKeyDown(e, habit)}
-                                  onBlur={() => saveEdit(habit)}
-                                  className="w-full bg-transparent border-b border-foreground focus:outline-none focus:border-primary"
-                                  autoFocus
-                                />
-                              ) : (
-                                <span onClick={() => startEditing(habit)} className="cursor-text">
-                                  {habit.name}
-                                </span>
-                              )}
-                            </h3>
-                            <p className="text-xs sm:text-sm text-muted-foreground">
-                              {progress.completed} de {progress.total} dias esta semana
-                            </p>
-                          </div>
-                        </div>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => confirmDelete(habit)}
-                          aria-label="Excluir hábito"
-                          className="text-muted-foreground hover:text-destructive shrink-0 min-h-[44px] min-w-[44px]"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => startEditing(habit)}
-                          aria-label="Editar nome"
-                          className="text-muted-foreground hover:text-destructive shrink-0 min-h-[44px] min-w-[44px]"
-                        >
-                          <Edit2 className="w-4 h-4" />
-                        </Button>
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent className="pt-0">
-                      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                        <div className="flex gap-2 sm:gap-3 justify-center sm:justify-start overflow-x-auto pb-1">
-                          {weekDays.map((date, index) => (
-                            <HabitDayIndicator key={date} habit={habit} date={date} dayName={getDayName(index)} />
-                          ))}
-                        </div>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => router.push(`/habito/${habit.id}`)}
-                          className="shadow-sm w-full sm:w-auto min-h-[44px]"
-                        >
-                          <TrendingUp className="w-4 h-4 mr-2" />
-                          Detalhes
-                        </Button>
-                      </div>
-                    </CardContent>
-                  </Card>
-                )
-              })}
-
-              <Card
-                className="floating-card border-2 border-dashed border-primary/30 bg-primary/5 hover:bg-primary/10 transition-colors cursor-pointer active:scale-95"
-                onClick={() => router.push("/novo")}
+          <ul className="mt-6 space-y-3">
+            {habits.map((habit, i) => (
+              <li
+                key={habit.id}
+                className="animate-in fade-in slide-in-from-bottom-2 fill-mode-both duration-300"
+                style={{ animationDelay: `${i * 40}ms` }}
               >
-                <CardContent className="text-center py-6 sm:py-8">
-                  <div className="w-10 h-10 sm:w-12 sm:h-12 bg-primary/20 rounded-full flex items-center justify-center mx-auto mb-3">
-                    <Plus className="w-5 h-5 sm:w-6 sm:h-6 text-primary" />
-                  </div>
-                  <h3 className="font-semibold text-primary mb-1 text-sm sm:text-base">Adicionar Novo Hábito</h3>
-                  <p className="text-xs sm:text-sm text-muted-foreground">Expanda sua rotina de crescimento</p>
-                </CardContent>
-              </Card>
-            </>
-          )}
-        </div>
+                <HabitCard habit={habit} weekDays={weekDays} todayKey={todayKey} onToggle={toggle} />
+              </li>
+            ))}
+          </ul>
+          <p className="mt-6 text-center text-xs text-neutral-400">
+            Toque no dia para marcar · toque de novo para &quot;não feito&quot;
+          </p>
+        </>
+      )}
+    </AppShell>
+  )
+}
+
+function TodaySummary({ pct, done, total }: { pct: number; done: number; total: number }) {
+  const r = 30
+  const c = 2 * Math.PI * r
+  const message =
+    done === total ? "Dia completo. Ridículo de bom." : done === 0 ? "Comece pelo menor." : "Continue, falta pouco."
+
+  return (
+    <section className="flex items-center gap-5 rounded-3xl bg-black p-5 text-white">
+      <div className="relative h-[76px] w-[76px] shrink-0">
+        <svg viewBox="0 0 76 76" className="h-full w-full -rotate-90">
+          <circle cx="38" cy="38" r={r} fill="none" stroke="rgba(255,255,255,0.15)" strokeWidth="8" />
+          <circle
+            cx="38"
+            cy="38"
+            r={r}
+            fill="none"
+            stroke="#22c55e"
+            strokeWidth="8"
+            strokeLinecap="round"
+            strokeDasharray={c}
+            strokeDashoffset={c - (pct / 100) * c}
+            className="transition-[stroke-dashoffset] duration-700 ease-out"
+          />
+        </svg>
+        <span className="absolute inset-0 flex items-center justify-center text-lg font-semibold tabular-nums">
+          {pct}%
+        </span>
+      </div>
+      <div>
+        <p className="text-3xl font-semibold tabular-nums">
+          {done}
+          <span className="text-white/40">/{total}</span>
+        </p>
+        <p className="text-sm text-white/60">{message}</p>
+      </div>
+    </section>
+  )
+}
+
+function HabitCard({
+  habit,
+  weekDays,
+  todayKey,
+  onToggle,
+}: {
+  habit: Habit
+  weekDays: string[]
+  todayKey: string
+  onToggle: (habit: Habit, key: string) => void
+}) {
+  const streak = currentStreak(habit)
+
+  return (
+    <div className="rounded-3xl border border-neutral-200 bg-white p-4 shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
+      <Link href={`/habito/${habit.id}`} className="pressable -m-1 flex items-center gap-2 rounded-2xl p-1">
+        <span className="min-w-0 flex-1 truncate text-base font-semibold">{habit.name}</span>
+        {streak > 0 && (
+          <span className="flex items-center gap-1 rounded-full bg-orange-50 px-2 py-0.5 text-xs font-semibold text-orange-600">
+            <Flame className="h-3.5 w-3.5" />
+            {streak}
+          </span>
+        )}
+        <ChevronRight className="h-4 w-4 text-neutral-300" />
+      </Link>
+
+      <div className="mt-3 grid grid-cols-7 gap-1">
+        {weekDays.map((key, i) => (
+          <DayDot
+            key={key}
+            label={WEEKDAY_INITIALS[i]}
+            status={habit.completions[key]}
+            isToday={key === todayKey}
+            isFuture={key > todayKey}
+            onClick={() => onToggle(habit, key)}
+          />
+        ))}
       </div>
     </div>
+  )
+}
+
+function DayDot({
+  label,
+  status,
+  isToday,
+  isFuture,
+  onClick,
+}: {
+  label: string
+  status: boolean | undefined
+  isToday: boolean
+  isFuture: boolean
+  onClick: () => void
+}) {
+  const [bump, setBump] = useState(0)
+  const stateLabel = status === true ? "feito" : status === false ? "não feito" : "sem marcação"
+
+  return (
+    <button
+      type="button"
+      disabled={isFuture}
+      onClick={() => {
+        setBump((b) => b + 1)
+        onClick()
+      }}
+      aria-label={`${label}${isToday ? " (hoje)" : ""}: ${stateLabel}`}
+      className="flex flex-col items-center gap-1.5 py-1 disabled:opacity-30"
+    >
+      <span className={cn("text-[11px] font-medium", isToday ? "text-foreground" : "text-neutral-400")}>{label}</span>
+      <span
+        key={bump}
+        className={cn(
+          "flex h-10 w-10 items-center justify-center rounded-full transition-colors duration-200",
+          bump > 0 && "animate-pop",
+          status === true && "bg-green-500 text-white",
+          status === false && "bg-red-500 text-white",
+          status === undefined && "bg-neutral-100 text-transparent",
+          isToday && status === undefined && "ring-2 ring-black ring-offset-2",
+        )}
+      >
+        {status === true && <Check className="h-5 w-5" strokeWidth={3} />}
+        {status === false && <X className="h-5 w-5" strokeWidth={3} />}
+      </span>
+    </button>
+  )
+}
+
+function EmptyState() {
+  return (
+    <section className="flex flex-col items-center px-4 pt-16 text-center animate-in fade-in zoom-in-95 duration-500">
+      <div className="mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-neutral-100">
+        <Plus className="h-8 w-8" />
+      </div>
+      <h2 className="text-xl font-semibold">Comece pequeno</h2>
+      <p className="mt-2 max-w-xs text-sm text-neutral-500">
+        Um hábito tão pequeno que seria ridículo não fazer. &quot;Ler 1 página&quot; vence &quot;ler mais&quot;.
+      </p>
+      <Link
+        href="/novo"
+        className="pressable mt-8 flex h-12 items-center gap-2 rounded-2xl bg-black px-6 text-sm font-semibold text-white"
+      >
+        <Plus className="h-4 w-4" />
+        Criar primeiro hábito
+      </Link>
+    </section>
   )
 }
