@@ -8,11 +8,13 @@ import { HabitsProvider } from "@/hooks/use-habits"
 import { AuthProvider } from "@/hooks/use-auth"
 import { AuthGate } from "@/components/auth-gate"
 import { ServiceWorkerRegister } from "@/components/sw-register"
+import { Splash } from "@/components/splash"
 import "./globals.css"
 
 export const metadata: Metadata = {
   title: "minimo ridículo - Rastreador de Hábitos",
   description: "Um rastreador de hábitos minimalista e sem distrações",
+  icons: { icon: "/favicon.ico", apple: "/apple-icon.png" },
   appleWebApp: { capable: true, title: "MRD", statusBarStyle: "default" },
 }
 
@@ -32,6 +34,7 @@ export default function RootLayout({
   return (
     <html lang="pt-BR">
       <body className={`font-sans ${GeistSans.variable} ${GeistMono.variable}`}>
+        <Splash />
         <Suspense fallback={null}><AuthProvider>
             <AuthGate>
               <HabitsProvider>{children}</HabitsProvider>
