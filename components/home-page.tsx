@@ -1,80 +1,24 @@
 "use client"
 
-import { useState, useEffect, useRef } from "react"
+import { useState, useRef } from "react"
+import Link from "next/link"
+import { useRouter } from "next/navigation"
+import { useHabits } from "@/hooks/use-habits"
+import { getWeekDays as weekDaysOf, WEEKDAY_INITIALS } from "@/lib/dates"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { AddHabitPage } from "@/components/add-habit-page"
-import { HabitDetailPage } from "@/components/habit-detail-page"
-import { AnalysisPage } from "@/components/analysis-page"
-import { Edit2, Trash2, Plus, BarChart3, TrendingUp, LogOut } from "lucide-react"
+import { Edit2, Trash2, Plus, BarChart3, TrendingUp } from "lucide-react"
 
-interface Habit {
-  id: string
-  name: string
-  completions: Record<string, boolean> // date string -> completed
-}
+import type { Habit } from "@/lib/types"
 
-export interface HomePageProps {
-  onLogout: () => void
-}
-
-export function HomePage({ onLogout }: HomePageProps) {
-  const [habits, setHabits] = useState<Habit[]>([])
-  const [currentPage, setCurrentPage] = useState<"home" | "add" | "detail" | "analysis">("home")
-  const [selectedHabitId, setSelectedHabitId] = useState<string | null>(null)
+export function HomePage() {
+  const router = useRouter()
+  const { habits, ready, updateHabit, deleteHabit } = useHabits()
   const [editingHabitId, setEditingHabitId] = useState<string | null>(null)
   const [editHabitName, setEditHabitName] = useState("")
   const editInputRef = useRef<HTMLInputElement>(null)
 
-  useEffect(() => {
-    // Load habits from localStorage
-    const savedHabits = localStorage.getItem("minimo-ridiculo-habits")
-    if (savedHabits) {
-      setHabits(JSON.parse(savedHabits))
-    }
-  }, [])
-
-  const saveHabits = (newHabits: Habit[]) => {
-    setHabits(newHabits)
-    localStorage.setItem("minimo-ridiculo-habits", JSON.stringify(newHabits))
-  }
-
-  const addHabit = (name: string) => {
-    const newHabit: Habit = {
-      id: Date.now().toString(),
-      name,
-      completions: {},
-    }
-    saveHabits([...habits, newHabit])
-    setCurrentPage("home")
-  }
-
-  const deleteHabit = (id: string) => {
-    saveHabits(habits.filter((habit) => habit.id !== id))
-  }
-
-  const updateHabit = (updatedHabit: Habit) => {
-    saveHabits(habits.map((habit) => (habit.id === updatedHabit.id ? updatedHabit : habit)))
-  }
-
-  const getWeekDays = () => {
-    const today = new Date()
-    const currentDay = today.getDay() // 0 = domingo, 1 = segunda, etc.
-    const days = []
-
-    // Calcular o domingo da semana atual
-    const sunday = new Date(today)
-    sunday.setDate(today.getDate() - currentDay)
-
-    // Gerar os 7 dias da semana começando no domingo
-    for (let i = 0; i < 7; i++) {
-      const date = new Date(sunday)
-      date.setDate(sunday.getDate() + i)
-      days.push(date.toISOString().split("T")[0])
-    }
-
-    return days
-  }
+  const getWeekDays = () => weekDaysOf()
 
   const getHabitProgress = (habit: Habit) => {
     const weekDays = getWeekDays()
@@ -145,10 +89,7 @@ export function HomePage({ onLogout }: HomePageProps) {
     )
   }
 
-  const getDayName = (index: number) => {
-    const dayNames = ["D", "S", "T", "Q", "Q", "S", "S"]
-    return dayNames[index]
-  }
+  const getDayName = (index: number) => WEEKDAY_INITIALS[index]
 
   const startEditing = (habit: Habit) => {
     setEditingHabitId(habit.id);
@@ -173,19 +114,12 @@ export function HomePage({ onLogout }: HomePageProps) {
     }
   };
 
-  if (currentPage === "add") {
-    return <AddHabitPage onAdd={addHabit} onCancel={() => setCurrentPage("home")} />
+  const confirmDelete = (habit: Habit) => {
+    if (window.confirm(`Excluir "${habit.name}"? O histórico será perdido.`)) deleteHabit(habit.id)
   }
 
-  if (currentPage === "detail" && selectedHabitId) {
-    const habit = habits.find((h) => h.id === selectedHabitId)
-    if (habit) {
-      return <HabitDetailPage habit={habit} onUpdate={updateHabit} onBack={() => setCurrentPage("home")} />
-    }
-  }
-
-  if (currentPage === "analysis") {
-    return <AnalysisPage habits={habits} onBack={() => setCurrentPage("home")} />
+  if (!ready) {
+    return <div className="min-h-screen bg-background" aria-busy="true" />
   }
 
   return (
@@ -199,23 +133,9 @@ export function HomePage({ onLogout }: HomePageProps) {
             </p>
           </div>
           <div className="flex gap-2 sm:gap-3 justify-center sm:justify-end">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setCurrentPage("analysis")}
-              className="shadow-sm flex-1 sm:flex-none min-h-[44px]"
-            >
-              <BarChart3 className="w-4 h-4 sm:mr-2" />
-              <span className="hidden sm:inline">Análise</span>
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={onLogout}
-              className="shadow-sm bg-transparent flex-1 sm:flex-none min-h-[44px]"
-            >
-              <LogOut className="w-4 h-4 sm:mr-2" />
-              <span className="hidden sm:inline">Sair</span>
+            <Button asChild variant="outline" size="sm" className="shadow-sm flex-1 sm:flex-none min-h-[44px]">
+              <Link href="/analise"><BarChart3 className="w-4 h-4 sm:mr-2" />
+              <span className="hidden sm:inline">Análise</span></Link>
             </Button>
           </div>
         </div>
@@ -232,7 +152,7 @@ export function HomePage({ onLogout }: HomePageProps) {
                   Nenhum hábito cadastrado ainda. Que tal começar com algo pequeno?
                 </p>
                 <Button
-                  onClick={() => setCurrentPage("add")}
+                  onClick={() => router.push("/novo")}
                   size="lg"
                   className="shadow-lg w-full sm:w-auto min-h-[48px]"
                 >
@@ -280,7 +200,8 @@ export function HomePage({ onLogout }: HomePageProps) {
                         <Button
                           variant="ghost"
                           size="sm"
-                          onClick={() => deleteHabit(habit.id)}
+                          onClick={() => confirmDelete(habit)}
+                          aria-label="Excluir hábito"
                           className="text-muted-foreground hover:text-destructive shrink-0 min-h-[44px] min-w-[44px]"
                         >
                           <Trash2 className="w-4 h-4" />
@@ -289,6 +210,7 @@ export function HomePage({ onLogout }: HomePageProps) {
                           variant="ghost"
                           size="sm"
                           onClick={() => startEditing(habit)}
+                          aria-label="Editar nome"
                           className="text-muted-foreground hover:text-destructive shrink-0 min-h-[44px] min-w-[44px]"
                         >
                           <Edit2 className="w-4 h-4" />
@@ -305,10 +227,7 @@ export function HomePage({ onLogout }: HomePageProps) {
                         <Button
                           variant="outline"
                           size="sm"
-                          onClick={() => {
-                            setSelectedHabitId(habit.id)
-                            setCurrentPage("detail")
-                          }}
+                          onClick={() => router.push(`/habito/${habit.id}`)}
                           className="shadow-sm w-full sm:w-auto min-h-[44px]"
                         >
                           <TrendingUp className="w-4 h-4 mr-2" />
@@ -322,7 +241,7 @@ export function HomePage({ onLogout }: HomePageProps) {
 
               <Card
                 className="floating-card border-2 border-dashed border-primary/30 bg-primary/5 hover:bg-primary/10 transition-colors cursor-pointer active:scale-95"
-                onClick={() => setCurrentPage("add")}
+                onClick={() => router.push("/novo")}
               >
                 <CardContent className="text-center py-6 sm:py-8">
                   <div className="w-10 h-10 sm:w-12 sm:h-12 bg-primary/20 rounded-full flex items-center justify-center mx-auto mb-3">

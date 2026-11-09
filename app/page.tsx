@@ -1,41 +1,5 @@
-"use client"
-
-import { useEffect, useState } from "react"
-import { LoginPage } from "@/components/login-page"
 import { HomePage } from "@/components/home-page"
 
-export default function App() {
-  const [isAuthenticated, setIsAuthenticated] = useState(false)
-  const [isLoading, setIsLoading] = useState(true)
-
-  useEffect(() => {
-    const currentUserName = localStorage.getItem("mrd-current-user")
-    if (currentUserName) {
-      setIsAuthenticated(true)
-    }
-    setIsLoading(false)
-  }, [])
-
-  const handleLogin = (userName: string) => {
-    setIsAuthenticated(true)
-  }
-
-  const handleLogout = () => {
-    localStorage.removeItem("mrd-current-user")
-    setIsAuthenticated(false)
-  }
-
-  if (isLoading) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-muted-foreground">Carregando...</div>
-      </div>
-    )
-  }
-
-  if (!isAuthenticated) {
-    return <LoginPage onLogin={handleLogin} />
-  }
-
-  return <HomePage onLogout={handleLogout} />
+export default function Page() {
+  return <HomePage />
 }

@@ -1,16 +1,13 @@
 "use client"
 
+import { toDateKey } from "@/lib/dates"
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { ChevronLeft, ChevronRight, TrendingUp, Target, Award, Calendar } from "lucide-react"
 import { Line, LineChart, ResponsiveContainer, XAxis, YAxis, CartesianGrid, Tooltip } from "recharts"
 
-interface Habit {
-  id: string
-  name: string
-  completions: Record<string, boolean>
-}
+import type { Habit } from "@/lib/types"
 
 interface HabitDetailPageProps {
   habit: Habit
@@ -45,7 +42,7 @@ export function HabitDetailPage({ habit, onUpdate, onBack }: HabitDetailPageProp
   }
 
   const toggleDay = (date: Date) => {
-    const dateString = date.toISOString().split("T")[0]
+    const dateString = toDateKey(date)
     const currentStatus = habit.completions[dateString]
     let newStatus: boolean | undefined
 
@@ -68,7 +65,7 @@ export function HabitDetailPage({ habit, onUpdate, onBack }: HabitDetailPageProp
   }
 
   const getStatusIcon = (date: Date) => {
-    const dateString = date.toISOString().split("T")[0]
+    const dateString = toDateKey(date)
     const completion = habit.completions[dateString]
     if (completion === true) return "✅"
     if (completion === false) return "❌"
@@ -92,7 +89,7 @@ export function HabitDetailPage({ habit, onUpdate, onBack }: HabitDetailPageProp
     for (let i = 13; i >= 0; i--) {
       const date = new Date(today)
       date.setDate(date.getDate() - i * 2) // A cada 2 dias para melhor visualização
-      const dateString = date.toISOString().split("T")[0]
+      const dateString = toDateKey(date)
       const completion = habit.completions[dateString]
 
       data.push({
@@ -112,7 +109,7 @@ export function HabitDetailPage({ habit, onUpdate, onBack }: HabitDetailPageProp
     for (let i = 0; i < 365; i++) {
       const date = new Date(today)
       date.setDate(date.getDate() - i)
-      const dateString = date.toISOString().split("T")[0]
+      const dateString = toDateKey(date)
 
       if (habit.completions[dateString] === true) {
         currentStreak++
@@ -127,7 +124,7 @@ export function HabitDetailPage({ habit, onUpdate, onBack }: HabitDetailPageProp
     for (let i = 365; i >= 0; i--) {
       const date = new Date(today)
       date.setDate(date.getDate() - i)
-      const dateString = date.toISOString().split("T")[0]
+      const dateString = toDateKey(date)
 
       if (habit.completions[dateString] === true) {
         tempStreak++
@@ -143,7 +140,7 @@ export function HabitDetailPage({ habit, onUpdate, onBack }: HabitDetailPageProp
     for (let i = 0; i < 30; i++) {
       const date = new Date(today)
       date.setDate(date.getDate() - i)
-      const dateString = date.toISOString().split("T")[0]
+      const dateString = toDateKey(date)
 
       if (habit.completions[dateString] === true) {
         completed++
@@ -159,7 +156,7 @@ export function HabitDetailPage({ habit, onUpdate, onBack }: HabitDetailPageProp
 
     for (let day = 1; day <= daysInMonth; day++) {
       const date = new Date(thisYear, thisMonth, day)
-      const dateString = date.toISOString().split("T")[0]
+      const dateString = toDateKey(date)
       if (habit.completions[dateString] === true) {
         monthCompleted++
       }
@@ -324,7 +321,7 @@ export function HabitDetailPage({ habit, onUpdate, onBack }: HabitDetailPageProp
                         border: "1px solid hsl(var(--border))",
                         borderRadius: "8px",
                       }}
-                      formatter={(value: number | null) => [
+                      formatter={(value) => [
                         value === 100 ? "Feito" : value === 0 ? "Não feito" : "Não marcado",
                         "Status",
                       ]}

@@ -1,15 +1,12 @@
 "use client"
 
+import { toDateKey } from "@/lib/dates"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Bar, BarChart, ResponsiveContainer, XAxis, YAxis, CartesianGrid, Tooltip } from "recharts"
 import { TrendingUp, Target, Calendar, Award } from "lucide-react"
 
-interface Habit {
-  id: string
-  name: string
-  completions: Record<string, boolean>
-}
+import type { Habit } from "@/lib/types"
 
 interface AnalysisPageProps {
   habits: Habit[]
@@ -19,7 +16,7 @@ interface AnalysisPageProps {
 export function AnalysisPage({ habits, onBack }: AnalysisPageProps) {
   const getGeneralMetrics = () => {
     const today = new Date()
-    const todayString = today.toISOString().split("T")[0]
+    const todayString = toDateKey(today)
 
     // Taxa de sucesso hoje
     const todayCompletions = habits.filter((habit) => habit.completions[todayString] === true).length
@@ -30,7 +27,7 @@ export function AnalysisPage({ habits, onBack }: AnalysisPageProps) {
     for (let i = 0; i < 30; i++) {
       const date = new Date(today)
       date.setDate(date.getDate() - i)
-      const dateString = date.toISOString().split("T")[0]
+      const dateString = toDateKey(date)
 
       const dayCompletions = habits.filter((habit) => habit.completions[dateString] === true).length
       if (dayCompletions > 0) {
@@ -46,7 +43,7 @@ export function AnalysisPage({ habits, onBack }: AnalysisPageProps) {
     for (let i = 0; i < 7; i++) {
       const date = new Date(today)
       date.setDate(date.getDate() - i)
-      const dateString = date.toISOString().split("T")[0]
+      const dateString = toDateKey(date)
 
       totalPossible += habits.length
       totalCompleted += habits.filter((habit) => habit.completions[dateString] === true).length
@@ -60,7 +57,7 @@ export function AnalysisPage({ habits, onBack }: AnalysisPageProps) {
     for (let i = 0; i < 30; i++) {
       const date = new Date(today)
       date.setDate(date.getDate() - i)
-      const dateString = date.toISOString().split("T")[0]
+      const dateString = toDateKey(date)
       const dayOfWeek = date.getDay()
 
       dayStats[dayOfWeek].total += habits.length
@@ -90,7 +87,7 @@ export function AnalysisPage({ habits, onBack }: AnalysisPageProps) {
     for (let i = 6; i >= 0; i--) {
       const date = new Date()
       date.setDate(date.getDate() - i)
-      const dateString = date.toISOString().split("T")[0]
+      const dateString = toDateKey(date)
       const dayName = dayNames[date.getDay()]
 
       // Calculate performance (percentage of habits completed)
