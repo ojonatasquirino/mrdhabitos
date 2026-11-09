@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { Target } from "lucide-react"
+import { Heart } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -39,14 +39,13 @@ export default function LoginPage() {
     <div className="min-h-screen bg-white flex">
       <div className="hidden lg:flex lg:w-1/2 bg-black text-white flex-col justify-center items-center p-12">
         <div className="max-w-md text-center space-y-6">
-          <div className="w-16 h-16 bg-white rounded-lg flex items-center justify-center mx-auto">
-            <Target className="w-8 h-8 text-black" />
-          </div>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/logo.webp" alt="Logo MRD" width={96} height={96} className="mx-auto h-24 w-24 rounded-3xl" />
           <h1 className="text-4xl font-bold">MRD</h1>
           <h2 className="text-xl font-medium text-gray-300">Mínimo Ridículo Diário</h2>
           <p className="text-gray-400 leading-relaxed">
-            Construa hábitos com tarefas tão pequenas que será ridículo não executar. A consistência supera a
-            intensidade.
+            Construa hábitos com tarefas tão pequenas, tão pequenas, que será ridículo não executar. A
+            consistência supera a intensidade.
           </p>
         </div>
       </div>
@@ -54,11 +53,12 @@ export default function LoginPage() {
       <div className="flex-1 flex items-center justify-center p-6 sm:p-8">
         <div className="w-full max-w-sm space-y-6">
           <div className="lg:hidden text-center space-y-3">
-            <div className="w-12 h-12 bg-black rounded-lg flex items-center justify-center mx-auto">
-              <Target className="w-6 h-6 text-white" />
-            </div>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/logo.webp" alt="Logo MRD" width={72} height={72} className="mx-auto h-[72px] w-[72px] rounded-2xl shadow-lg" />
             <h1 className="text-2xl font-bold text-black">MRD</h1>
-            <p className="text-sm text-gray-600">Faça o mínimo ridículo diariamente. Este é o segredo.</p>
+            <p className="mx-auto max-w-xs text-sm text-gray-600">
+              Construa hábitos com tarefas tão pequenas, tão pequenas, que será ridículo não executar.
+            </p>
           </div>
 
           <div className="text-center space-y-1">
@@ -127,6 +127,19 @@ export default function LoginPage() {
               {mode === "login" ? "Cadastre-se" : "Faça login"}
             </button>
           </p>
+
+          <footer className="pt-6 text-center text-xs text-gray-500">
+            Feito com{" "}
+            <Heart className="inline h-3.5 w-3.5 -translate-y-px fill-red-500 text-red-500" aria-label="amor" /> por{" "}
+            <a
+              href="https://ojonatasquirino.com"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="font-medium text-black underline-offset-4 hover:underline"
+            >
+              ojonatasquirino.com
+            </a>
+          </footer>
         </div>
       </div>
     </div>
