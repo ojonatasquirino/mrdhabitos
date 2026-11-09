@@ -4,16 +4,19 @@ import { useState, useRef } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useHabits } from "@/hooks/use-habits"
+import { useAuth } from "@/hooks/use-auth"
+import { ReminderButton } from "@/components/reminder-button"
 import { getWeekDays as weekDaysOf, WEEKDAY_INITIALS } from "@/lib/dates"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Edit2, Trash2, Plus, BarChart3, TrendingUp } from "lucide-react"
+import { Edit2, Trash2, Plus, BarChart3, TrendingUp, LogOut } from "lucide-react"
 
 import type { Habit } from "@/lib/types"
 
 export function HomePage() {
   const router = useRouter()
   const { habits, ready, updateHabit, deleteHabit } = useHabits()
+  const { user, enabled: authEnabled, logout } = useAuth()
   const [editingHabitId, setEditingHabitId] = useState<string | null>(null)
   const [editHabitName, setEditHabitName] = useState("")
   const editInputRef = useRef<HTMLInputElement>(null)
@@ -129,14 +132,29 @@ export function HomePage() {
           <div className="text-center sm:text-left">
             <h1 className="text-3xl sm:text-4xl font-bold text-foreground">MRD</h1>
             <p className="text-base sm:text-lg text-muted-foreground mt-1 font-medium">
-              {"Faça o mínimo ridículo diariamente. Este é o segredo.\n"}
+              {user?.displayName
+                ? `${user.displayName.split(" ")[0]}, faça o mínimo ridículo hoje.`
+                : "Faça o mínimo ridículo diariamente. Este é o segredo."}
             </p>
           </div>
           <div className="flex gap-2 sm:gap-3 justify-center sm:justify-end">
+            <ReminderButton habits={habits} />
             <Button asChild variant="outline" size="sm" className="shadow-sm flex-1 sm:flex-none min-h-[44px]">
               <Link href="/analise"><BarChart3 className="w-4 h-4 sm:mr-2" />
               <span className="hidden sm:inline">Análise</span></Link>
             </Button>
+            {authEnabled && user && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => logout()}
+                aria-label="Sair"
+                className="shadow-sm bg-transparent flex-1 sm:flex-none min-h-[44px]"
+              >
+                <LogOut className="w-4 h-4 sm:mr-2" />
+                <span className="hidden sm:inline">Sair</span>
+              </Button>
+            )}
           </div>
         </div>
 

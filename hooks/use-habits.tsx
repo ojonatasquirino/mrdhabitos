@@ -1,7 +1,10 @@
 "use client"
 
-import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react"
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react"
+import { doc, getDoc, onSnapshot, setDoc } from "firebase/firestore"
 import type { Habit } from "@/lib/types"
+import { firebaseDb } from "@/lib/firebase"
+import { useAuth } from "@/hooks/use-auth"
 
 const STORAGE_KEY = "minimo-ridiculo-habits"
 const LEGACY_AUTH_KEYS = ["mrd-users", "mrd-current-user"]
@@ -16,45 +19,91 @@ interface HabitsContextValue {
 
 const HabitsContext = createContext<HabitsContextValue | null>(null)
 
-function readHabits(): Habit[] {
+function readLocal(): Habit[] {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY)
-    const parsed = raw ? JSON.parse(raw) : []
+    const parsed = JSON.parse(localStorage.getItem(STORAGE_KEY) ?? "[]")
     return Array.isArray(parsed) ? parsed : []
   } catch {
     return []
   }
 }
 
+function writeLocal(habits: Habit[]) {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(habits))
+  } catch {
+    // modo privado / cota cheia
+  }
+}
+
+/**
+ * Sem Firebase configurado: localStorage.
+ * Com usuário logado: Firestore em users/{uid}, com cache local para abrir offline.
+ * No primeiro login, hábitos locais existentes sobem para a conta.
+ */
 export function HabitsProvider({ children }: { children: React.ReactNode }) {
+  const { user, ready: authReady, enabled } = useAuth()
   const [habits, setHabits] = useState<Habit[]>([])
   const [ready, setReady] = useState(false)
+  const habitsRef = useRef<Habit[]>([])
+  const uid = user?.uid
 
   useEffect(() => {
-    setHabits(readHabits())
-    // remove o antigo login falso (senhas em texto puro)
     LEGACY_AUTH_KEYS.forEach((key) => localStorage.removeItem(key))
-    setReady(true)
+  }, [])
 
-    // mantém abas sincronizadas
-    const onStorage = (e: StorageEvent) => {
-      if (e.key === STORAGE_KEY) setHabits(readHabits())
+  useEffect(() => {
+    if (!authReady) return
+
+    const apply = (next: Habit[]) => {
+      habitsRef.current = next
+      setHabits(next)
+      writeLocal(next)
+      setReady(true)
     }
-    window.addEventListener("storage", onStorage)
-    return () => window.removeEventListener("storage", onStorage)
-  }, [])
 
-  const persist = useCallback((updater: (prev: Habit[]) => Habit[]) => {
-    setHabits((prev) => {
-      const next = updater(prev)
-      try {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(next))
-      } catch {
-        // armazenamento indisponível (modo privado / cota cheia)
+    if (!enabled || !uid) {
+      apply(enabled ? [] : readLocal())
+      if (enabled) setReady(true)
+      const onStorage = (e: StorageEvent) => e.key === STORAGE_KEY && apply(readLocal())
+      window.addEventListener("storage", onStorage)
+      return () => window.removeEventListener("storage", onStorage)
+    }
+
+    const ref = doc(firebaseDb(), "users", uid)
+    let unsub = () => {}
+    let cancelled = false
+
+    ;(async () => {
+      const snap = await getDoc(ref).catch(() => null)
+      if (cancelled) return
+      if (!snap?.exists()) {
+        const local = readLocal()
+        if (local.length) await setDoc(ref, { habits: local }, { merge: true })
       }
-      return next
-    })
-  }, [])
+      unsub = onSnapshot(ref, (s) => apply((s.data()?.habits as Habit[]) ?? []))
+    })()
+
+    // abre instantâneo com o cache enquanto a nuvem responde
+    setHabits(readLocal())
+    return () => {
+      cancelled = true
+      unsub()
+    }
+  }, [authReady, enabled, uid])
+
+  const persist = useCallback(
+    (updater: (prev: Habit[]) => Habit[]) => {
+      const next = updater(habitsRef.current)
+      habitsRef.current = next
+      setHabits(next)
+      writeLocal(next)
+      if (enabled && uid) {
+        setDoc(doc(firebaseDb(), "users", uid), { habits: next }, { merge: true }).catch(console.error)
+      }
+    },
+    [enabled, uid],
+  )
 
   const addHabit = useCallback(
     (name: string) => {
