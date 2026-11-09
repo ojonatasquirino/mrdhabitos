@@ -4,7 +4,7 @@ import { useMemo, useState } from "react"
 import { Area, AreaChart, Bar, BarChart, CartesianGrid, Cell, XAxis, YAxis } from "recharts"
 import { AppShell, PageHeader } from "@/components/app-shell"
 import { ChartContainer, ChartTooltip, ChartTooltipContent, type ChartConfig } from "@/components/ui/chart"
-import { addDays, toDateKey } from "@/lib/dates"
+import { toDateKey } from "@/lib/dates"
 import { anyHabitStreak, dayRate, habitRate, lastDays, rateOverDays, weekdayRates } from "@/lib/stats"
 import type { Habit } from "@/lib/types"
 import { cn } from "@/lib/utils"
@@ -76,8 +76,8 @@ export function AnalysisPage({ habits, notes = {} }: AnalysisPageProps) {
         </div>
       ) : (
         <div className="space-y-4">
-          <ChartCard title="Constância" description="Últimas 15 semanas">
-            <Heatmap habits={habits} />
+          <ChartCard title="Constância" description={`Cada quadrado é um dia · últimos ${range} dias`}>
+            <Heatmap habits={habits} days={days} />
           </ChartCard>
 
           <div className="grid grid-cols-3 gap-2">
@@ -203,34 +203,48 @@ function ChartCard({
 }
 
 /** Grade estilo GitHub: colunas = semanas, linhas = dias (dom a sáb). */
-function Heatmap({ habits }: { habits: Habit[] }) {
-  const weeks = 15
-  const today = new Date()
-  const start = addDays(today, -(weeks * 7 - 1) - (6 - today.getDay()))
-  const todayKey = toDateKey(today)
-
+/** Um quadrado por dia do período selecionado, em colunas de domingo a sábado. */
+function Heatmap({ habits, days }: { habits: Habit[]; days: Date[] }) {
+  const lead = days[0]?.getDay() ?? 0
   const level = (rate: number | null) => {
-    if (!rate) return "bg-muted"
-    if (rate < 34) return "bg-green-200"
-    if (rate < 67) return "bg-green-400"
-    if (rate < 100) return "bg-green-500"
-    return "bg-green-700"
+    if (!rate) return "bg-muted text-muted-foreground"
+    if (rate < 34) return "bg-green-200 text-green-900"
+    if (rate < 67) return "bg-green-400 text-green-950"
+    if (rate < 100) return "bg-green-500 text-white"
+    return "bg-green-700 text-white"
   }
 
   return (
     <div>
-      <div className="grid grid-flow-col grid-rows-7 gap-[3px]">
-        {Array.from({ length: weeks * 7 }, (_, i) => {
-          const d = addDays(start, i)
+      <div className="grid grid-cols-7 gap-1.5 text-center">
+        {["D", "S", "T", "Q", "Q", "S", "S"].map((d, i) => (
+          <span key={i} className="pb-0.5 text-[10px] font-medium text-muted-foreground">
+            {d}
+          </span>
+        ))}
+        {Array.from({ length: lead }, (_, i) => (
+          <span key={`e${i}`} />
+        ))}
+        {days.map((d) => {
           const key = toDateKey(d)
-          const future = key > todayKey
-          const rate = future ? null : dayRate(habits, key)
+          const rate = dayRate(habits, key)
+          const firstOfMonth = d.getDate() === 1
           return (
             <div
               key={key}
               title={`${d.toLocaleDateString("pt-BR")}: ${rate ?? 0}%`}
-              className={cn("aspect-square rounded-[4px]", future ? "bg-transparent" : level(rate))}
-            />
+              className={cn(
+                "flex aspect-square flex-col items-center justify-center rounded-lg text-[11px] font-semibold tabular-nums leading-none",
+                level(rate),
+              )}
+            >
+              {d.getDate()}
+              {firstOfMonth && (
+                <span className="mt-0.5 text-[8px] font-medium uppercase opacity-80">
+                  {d.toLocaleDateString("pt-BR", { month: "short" }).replace(".", "")}
+                </span>
+              )}
+            </div>
           )
         })}
       </div>

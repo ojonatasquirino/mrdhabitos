@@ -2,9 +2,28 @@
 
 import { useMemo, useState } from "react"
 import Link from "next/link"
-import { Check, ChevronRight, Flame, LogOut, Moon, NotebookPen, Plus, Quote as QuoteIcon, Sun, X } from "lucide-react"
+import { Check, ChevronRight, Flame, GripVertical, Moon, NotebookPen, Plus, Quote as QuoteIcon, Sun, X } from "lucide-react"
 import { AppShell, BottomSheet, IconButton, PageHeader } from "@/components/app-shell"
 import { Button } from "@/components/ui/button"
+import { Avatar } from "@/components/avatar"
+import {
+  DndContext,
+  closestCenter,
+  MouseSensor,
+  TouchSensor,
+  KeyboardSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from "@dnd-kit/core"
+import {
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable"
+import { CSS } from "@dnd-kit/utilities"
+import { restrictToVerticalAxis, restrictToParentElement } from "@dnd-kit/modifiers"
 import { useTheme } from "@/hooks/use-theme"
 import { QUOTES, quoteIndexFor } from "@/lib/quotes"
 import { ReminderButton } from "@/components/reminder-button"
@@ -22,16 +41,28 @@ function haptic() {
 }
 
 export function HomePage() {
-  const { habits, ready, updateHabit, notes, setNote } = useHabits()
+  const { habits, ready, updateHabit, notes, setNote, moveHabit, profile } = useHabits()
   const { theme, toggle: toggleTheme } = useTheme()
-  const { user, enabled: authEnabled, logout } = useAuth()
+  const { user } = useAuth()
   const today = new Date()
   const todayKey = toDateKey(today)
   const weekDays = useMemo(() => getWeekDays(), [])
 
   const doneToday = habits.filter((h) => h.completions[todayKey] === true).length
   const pct = habits.length ? Math.round((doneToday / habits.length) * 100) : 0
-  const firstName = user?.displayName?.split(" ")[0]
+  const firstName = profile.name || user?.displayName?.split(" ")[0]
+  const sensors = useSensors(
+    // segurar ~0,3s para arrastar; toque rápido continua marcando o dia
+    useSensor(TouchSensor, { activationConstraint: { delay: 300, tolerance: 8 } }),
+    useSensor(MouseSensor, { activationConstraint: { delay: 250, tolerance: 5 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+  )
+  const onDragEnd = (e: DragEndEvent) => {
+    if (e.over && e.active.id !== e.over.id) {
+      haptic()
+      moveHabit(String(e.active.id), String(e.over.id))
+    }
+  }
   const weekday = today.toLocaleDateString("pt-BR", { weekday: "long" }).split("-")[0]
   const dateLabel = `${weekday}, ${today.getDate()} ${today.toLocaleDateString("pt-BR", { month: "short" }).replace(".", "")}`
 
@@ -70,13 +101,9 @@ export function HomePage() {
           </>
         }
         right={
-          <>
-            {authEnabled && user && (
-              <IconButton aria-label="Sair" onClick={() => logout()} className="text-muted-foreground">
-                <LogOut className="h-5 w-5" />
-              </IconButton>
-            )}
-          </>
+          <Link href="/perfil" aria-label="Perfil" className="pressable rounded-full">
+            <Avatar photo={profile.photo} name={firstName} className="h-9 w-9 text-sm" />
+          </Link>
         }
       />
 
@@ -89,19 +116,25 @@ export function HomePage() {
           <TodaySummary pct={pct} done={doneToday} total={habits.length} />
           <DayNote value={notes[todayKey] ?? ""} onSave={(text) => setNote(todayKey, text)} />
 
-          <ul className="mt-6 space-y-3">
-            {habits.map((habit, i) => (
-              <li
-                key={habit.id}
-                className="animate-in fade-in slide-in-from-bottom-2 fill-mode-both duration-300"
-                style={{ animationDelay: `${i * 40}ms` }}
-              >
-                <HabitCard habit={habit} weekDays={weekDays} todayKey={todayKey} onToggle={toggle} />
-              </li>
-            ))}
-          </ul>
+          <DndContext
+            sensors={sensors}
+            collisionDetection={closestCenter}
+            onDragStart={() => haptic()}
+            onDragEnd={onDragEnd}
+            modifiers={[restrictToVerticalAxis, restrictToParentElement]}
+          >
+            <SortableContext items={habits.map((h) => h.id)} strategy={verticalListSortingStrategy}>
+              <ul className="mt-6 space-y-3">
+                {habits.map((habit) => (
+                  <SortableItem key={habit.id} id={habit.id}>
+                    <HabitCard habit={habit} weekDays={weekDays} todayKey={todayKey} onToggle={toggle} />
+                  </SortableItem>
+                ))}
+              </ul>
+            </SortableContext>
+          </DndContext>
           <p className="mt-6 text-center text-xs text-muted-foreground">
-            Toque no dia para marcar · toque de novo para &quot;não feito&quot;
+            Toque no dia para marcar · segure o card para reordenar
           </p>
         </>
       )}
@@ -347,5 +380,27 @@ function DayNote({ value, onSave }: { value: string; onSave: (text: string) => v
         </div>
       </BottomSheet>
     </>
+  )
+}
+
+function SortableItem({ id, children }: { id: string; children: React.ReactNode }) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id })
+  return (
+    <li
+      ref={setNodeRef}
+      style={{ transform: CSS.Translate.toString(transform), transition }}
+      className={cn(
+        "relative touch-manipulation select-none [-webkit-touch-callout:none]",
+        isDragging && "z-10 scale-[1.02] opacity-95 shadow-2xl rounded-3xl",
+      )}
+      {...attributes}
+      {...listeners}
+    >
+      {children}
+      <GripVertical
+        aria-hidden="true"
+        className="pointer-events-none absolute left-1 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground/30"
+      />
+    </li>
   )
 }
