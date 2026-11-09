@@ -22,9 +22,10 @@ function load(): ReminderSettings {
   }
 }
 
-async function notify(pending: number) {
+async function notify(pending: number, override?: string) {
   const body =
-    pending === 1 ? "Falta 1 hábito hoje. É ridículo de tão pequeno." : `Faltam ${pending} hábitos hoje. Bora no mínimo.`
+    override ??
+    (pending === 1 ? "Falta 1 hábito hoje. É ridículo de tão pequeno." : `Faltam ${pending} hábitos hoje. Bora no mínimo.`)
   const reg = await navigator.serviceWorker?.getRegistration()
   const options = { body, icon: "/icon-192.png", badge: "/icon-192.png", tag: "mrd-daily" }
   if (reg) await reg.showNotification("MRD", options)
@@ -74,11 +75,11 @@ export function useReminder(habits: Habit[]) {
       const [h, m] = settings.time.split(":").map(Number)
       const due = new Date(now)
       due.setHours(h, m, 0, 0)
-      if (now < due || localStorage.getItem(LAST_KEY) === today) return
+      if (now < due || localStorage.getItem(LAST_KEY) === `${today} ${settings.time}`) return
 
       const pending = habits.filter((habit) => habit.completions[today] === undefined).length
       if (pending === 0) return
-      localStorage.setItem(LAST_KEY, today)
+      localStorage.setItem(LAST_KEY, `${today} ${settings.time}`)
       notify(pending).catch(console.error)
     }
 
@@ -87,5 +88,14 @@ export function useReminder(habits: Habit[]) {
     return () => window.clearInterval(id)
   }, [settings, permission, habits])
 
-  return { settings, permission, enable, disable }
+  const test = useCallback(async () => {
+    try {
+      await notify(0, "Teste: as notificações do MRD estão funcionando.")
+      return true
+    } catch {
+      return false
+    }
+  }, [])
+
+  return { settings, permission, enable, disable, test }
 }

@@ -173,7 +173,8 @@ body {
   padding-bottom: max(env(safe-area-inset-bottom), 12px);
 }
 .safe-top {
-  padding-top: max(env(safe-area-inset-top), 16px);
+  /* folga extra abaixo do status bar do iOS */
+  padding-top: calc(max(env(safe-area-inset-top), 12px) + 12px);
 }
 @media (prefers-reduced-motion: reduce) {
   .animate-pop, .pressable { animation: none; transition: none; }
