@@ -16,7 +16,7 @@ export function AddHabitPage({ onAdd, onCancel }: AddHabitPageProps) {
   const valid = name.trim().length > 0
 
   return (
-    <AppShell nav={false}>
+    <AppShell nav={false} size="narrow">
       <PageHeader
         subtitle="Novo hábito"
         title="O que é ridículo de fácil?"
@@ -60,7 +60,7 @@ export function AddHabitPage({ onAdd, onCancel }: AddHabitPageProps) {
           Seja específico e comece pequeno. A consistência supera a intensidade.
         </p>
 
-        <div className="safe-bottom fixed inset-x-0 bottom-0 mx-auto w-full max-w-md px-5 sm:absolute">
+        <div className="safe-bottom fixed inset-x-0 bottom-0 mx-auto w-full max-w-md px-5 sm:absolute lg:static lg:mt-8 lg:max-w-none lg:px-0 lg:pb-0">
           <button
             type="submit"
             disabled={!valid}

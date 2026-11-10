@@ -16,9 +16,11 @@ interface AnalysisPageProps {
 }
 
 const RANGES = [
-  { days: 7, label: "7 dias" },
-  { days: 30, label: "30 dias" },
-  { days: 90, label: "90 dias" },
+  { days: 7, label: "7 dias", desktopOnly: false },
+  { days: 30, label: "30 dias", desktopOnly: false },
+  { days: 90, label: "90 dias", desktopOnly: false },
+  // só aparece no desktop, onde cabe o ano inteiro
+  { days: 365, label: "1 ano", desktopOnly: true },
 ] as const
 
 const trendConfig = { rate: { label: "Concluído", color: "var(--chart-2)" } } satisfies ChartConfig
@@ -54,7 +56,7 @@ export function AnalysisPage({ habits, notes = {} }: AnalysisPageProps) {
     <AppShell>
       <PageHeader subtitle="Seu progresso" title="Análise" />
 
-      <div className="mb-5 grid grid-cols-3 rounded-2xl bg-muted p-1">
+      <div className="mb-5 grid grid-cols-3 rounded-2xl bg-muted p-1 lg:mb-6 lg:w-[28rem] lg:grid-cols-4">
         {RANGES.map((r) => (
           <button
             key={r.days}
@@ -63,6 +65,7 @@ export function AnalysisPage({ habits, notes = {} }: AnalysisPageProps) {
             className={cn(
               "pressable rounded-xl py-2 text-sm font-medium transition-all",
               range === r.days ? "bg-card text-foreground shadow-sm" : "text-muted-foreground",
+              r.desktopOnly && "hidden lg:block",
             )}
           >
             {r.label}
@@ -75,22 +78,27 @@ export function AnalysisPage({ habits, notes = {} }: AnalysisPageProps) {
           Crie um hábito para ver seus gráficos aqui.
         </div>
       ) : (
-        <div className="space-y-4">
-          <ChartCard title="Constância" description={`Últimos ${range} dias · cada quadrado é um dia`}>
+        <div className="space-y-4 lg:grid lg:grid-cols-2 lg:gap-5 lg:space-y-0">
+          <ChartCard
+            className="lg:col-span-2"
+            title="Constância"
+            description={`${range === 365 ? "Último ano" : `Últimos ${range} dias`} · cada quadrado é um dia`}
+          >
             <Heatmap habits={habits} days={days} />
           </ChartCard>
 
-          <div className="grid grid-cols-3 gap-2">
+          <div className="grid grid-cols-3 gap-2 lg:col-span-2 lg:gap-5">
             <Stat label="Concluído" value={`${periodRate}%`} />
             <Stat label="Sequência" value={String(streak)} hint={streak === 1 ? "dia" : "dias"} />
             <Stat label="Melhor dia" value={best.rate > 0 ? best.day : "—"} />
           </div>
 
           <ChartCard
+            className="lg:col-span-2"
             title="Tendência"
             description={smooth ? "Média móvel de 7 dias" : "% dos hábitos feitos por dia"}
           >
-            <ChartContainer config={trendConfig} className="aspect-auto h-44 w-full">
+            <ChartContainer config={trendConfig} className="aspect-auto h-44 w-full lg:h-64">
               <AreaChart data={trend} margin={{ left: 0, right: 4, top: 8 }}>
                 <defs>
                   <linearGradient id="fillRate" x1="0" y1="0" x2="0" y2="1">
@@ -124,7 +132,7 @@ export function AnalysisPage({ habits, notes = {} }: AnalysisPageProps) {
           </ChartCard>
 
           <ChartCard title="Por dia da semana" description="Onde você é mais constante">
-            <ChartContainer config={weekdayConfig} className="aspect-auto h-40 w-full">
+            <ChartContainer config={weekdayConfig} className="aspect-auto h-40 w-full lg:h-56">
               <BarChart data={weekdays} margin={{ left: 0, right: 0, top: 8 }}>
                 <CartesianGrid vertical={false} />
                 <XAxis dataKey="day" tickLine={false} axisLine={false} tickMargin={8} />
@@ -174,9 +182,9 @@ export function AnalysisPage({ habits, notes = {} }: AnalysisPageProps) {
 
 function Stat({ label, value, hint }: { label: string; value: string; hint?: string }) {
   return (
-    <div className="rounded-2xl border border-border p-3">
-      <p className="text-[11px] font-medium text-muted-foreground">{label}</p>
-      <p className="mt-1 text-xl font-semibold tabular-nums">
+    <div className="rounded-2xl border border-border p-3 lg:rounded-3xl lg:p-5">
+      <p className="text-[11px] font-medium text-muted-foreground lg:text-xs">{label}</p>
+      <p className="mt-1 text-xl font-semibold tabular-nums lg:text-3xl">
         {value}
         {hint && <span className="ml-1 text-xs font-normal text-muted-foreground">{hint}</span>}
       </p>
@@ -188,13 +196,20 @@ function ChartCard({
   title,
   description,
   children,
+  className,
 }: {
   title: string
   description?: string
   children: React.ReactNode
+  className?: string
 }) {
   return (
-    <section className="rounded-3xl border border-border p-4 animate-in fade-in slide-in-from-bottom-2 duration-500">
+    <section
+      className={cn(
+        "rounded-3xl border border-border p-4 animate-in fade-in slide-in-from-bottom-2 duration-500 lg:p-6",
+        className,
+      )}
+    >
       <h2 className="text-sm font-semibold">{title}</h2>
       {description && <p className="mb-3 text-xs text-muted-foreground">{description}</p>}
       {children}
@@ -202,13 +217,14 @@ function ChartCard({
   )
 }
 
-/** Grade estilo GitHub: colunas = semanas, linhas = dias (dom a sáb). */
 /**
  * Estilo "commits do GitHub": um quadradinho por dia do período selecionado,
  * em ordem cronológica (esquerda para a direita), sem números.
  */
 function Heatmap({ habits, days }: { habits: Habit[]; days: Date[] }) {
   const cols = days.length <= 7 ? 7 : 15
+  // desktop: mais colunas para os quadradinhos ficarem pequenos como no GitHub
+  const colsLg = days.length <= 7 ? 7 : days.length <= 90 ? 30 : 53
   const level = (rate: number | null) => {
     if (!rate) return "bg-muted"
     if (rate < 34) return "bg-green-200"
@@ -219,7 +235,14 @@ function Heatmap({ habits, days }: { habits: Habit[]; days: Date[] }) {
 
   return (
     <div>
-      <div className="grid gap-[3px]" style={{ gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))` }}>
+      <div
+        className={cn(
+          "grid gap-[3px] [grid-template-columns:repeat(var(--cols),minmax(0,1fr))]",
+          "lg:gap-1 lg:[grid-template-columns:repeat(var(--cols-lg),minmax(0,1fr))]",
+          cols === 7 && "lg:max-w-xl",
+        )}
+        style={{ "--cols": cols, "--cols-lg": colsLg } as React.CSSProperties}
+      >
         {days.map((d) => {
           const key = toDateKey(d)
           const rate = dayRate(habits, key)
@@ -232,7 +255,7 @@ function Heatmap({ habits, days }: { habits: Habit[]; days: Date[] }) {
           )
         })}
       </div>
-      <div className="mt-3 flex items-center justify-between text-[10px] text-muted-foreground">
+      <div className="mt-3 flex items-center justify-between text-[10px] text-muted-foreground lg:text-xs">
         <span>
           {days[0]?.toLocaleDateString("pt-BR", { day: "2-digit", month: "short" }).replace(".", "")} → hoje
         </span>
@@ -255,8 +278,8 @@ function Journal({ notes }: { notes: Record<string, string> }) {
   if (!entries.length) return null
 
   return (
-    <ChartCard title="Diário" description="Suas notas mais recentes">
-      <ol className="space-y-4">
+    <ChartCard className="lg:col-span-2" title="Diário" description="Suas notas mais recentes">
+      <ol className="space-y-4 lg:grid lg:grid-cols-2 lg:gap-x-8 lg:gap-y-5 lg:space-y-0">
         {entries.map(([key, text]) => {
           const [y, m, d] = key.split("-").map(Number)
           const date = new Date(y, m - 1, d).toLocaleDateString("pt-BR", {

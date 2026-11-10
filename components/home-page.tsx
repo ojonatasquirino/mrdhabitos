@@ -89,7 +89,7 @@ export function HomePage() {
         subtitle={dateLabel}
         title={firstName ? `Olá, ${firstName}` : "Hoje"}
         left={
-          <>
+          <span className="contents lg:hidden">
             <IconButton
               aria-label={theme === "dark" ? "Usar tema claro" : "Usar tema escuro"}
               onClick={toggleTheme}
@@ -98,46 +98,59 @@ export function HomePage() {
               {theme === "dark" ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
             </IconButton>
             <ReminderButton habits={habits} />
-          </>
+          </span>
         }
         right={
-          <Link href="/perfil" aria-label="Perfil" className="pressable rounded-full">
+          <Link href="/perfil" aria-label="Perfil" className="pressable rounded-full lg:hidden">
             <Avatar photo={profile.photo} name={firstName} className="h-9 w-9 text-sm" />
           </Link>
         }
       />
 
-      <DailyQuote date={today} />
+      {/* Desktop: hábitos à esquerda, resumo/frase/nota numa coluna à direita. Mobile: mesma ordem de antes. */}
+      <div className="lg:grid lg:grid-cols-[minmax(0,1fr)_300px] lg:items-start lg:gap-6 xl:grid-cols-[minmax(0,1fr)_320px] xl:gap-8">
+        <aside className="lg:sticky lg:top-36 lg:col-start-2 lg:row-start-1 lg:space-y-3">
+          <DailyQuote date={today} />
+          {habits.length > 0 && (
+            <>
+              <TodaySummary pct={pct} done={doneToday} total={habits.length} />
+              <DayNote value={notes[todayKey] ?? ""} onSave={(text) => setNote(todayKey, text)} />
+            </>
+          )}
+        </aside>
 
-      {habits.length === 0 ? (
-        <EmptyState />
-      ) : (
-        <>
-          <TodaySummary pct={pct} done={doneToday} total={habits.length} />
-          <DayNote value={notes[todayKey] ?? ""} onSave={(text) => setNote(todayKey, text)} />
-
-          <DndContext
-            sensors={sensors}
-            collisionDetection={closestCenter}
-            onDragStart={() => haptic()}
-            onDragEnd={onDragEnd}
-            modifiers={[restrictToVerticalAxis, restrictToParentElement]}
-          >
-            <SortableContext items={habits.map((h) => h.id)} strategy={verticalListSortingStrategy}>
-              <ul className="mt-6 space-y-3">
-                {habits.map((habit) => (
-                  <SortableItem key={habit.id} id={habit.id}>
-                    <HabitCard habit={habit} weekDays={weekDays} todayKey={todayKey} onToggle={toggle} />
-                  </SortableItem>
-                ))}
-              </ul>
-            </SortableContext>
-          </DndContext>
-          <p className="mt-6 text-center text-xs text-muted-foreground">
-            Toque no dia para marcar · segure o card para reordenar
-          </p>
-        </>
-      )}
+        <div className="lg:col-start-1 lg:row-start-1">
+          {habits.length === 0 ? (
+            <EmptyState />
+          ) : (
+            <>
+              <DndContext
+                sensors={sensors}
+                collisionDetection={closestCenter}
+                onDragStart={() => haptic()}
+                onDragEnd={onDragEnd}
+                modifiers={[restrictToVerticalAxis, restrictToParentElement]}
+              >
+                <SortableContext items={habits.map((h) => h.id)} strategy={verticalListSortingStrategy}>
+                  <ul className="mt-6 space-y-3 lg:mt-0">
+                    {habits.map((habit) => (
+                      <SortableItem key={habit.id} id={habit.id}>
+                        <HabitCard habit={habit} weekDays={weekDays} todayKey={todayKey} onToggle={toggle} />
+                      </SortableItem>
+                    ))}
+                  </ul>
+                </SortableContext>
+              </DndContext>
+              <p className="mt-6 text-center text-xs text-muted-foreground lg:text-left">
+                <span className="lg:hidden">Toque no dia para marcar · segure o card para reordenar</span>
+                <span className="hidden lg:inline">
+                  Clique no dia para marcar · segure e arraste o card para reordenar
+                </span>
+              </p>
+            </>
+          )}
+        </div>
+      </div>
     </AppShell>
   )
 }
@@ -195,8 +208,11 @@ function HabitCard({
   const streak = currentStreak(habit)
 
   return (
-    <div className="rounded-3xl border border-border bg-card p-4 shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
-      <Link href={`/habito/${habit.id}`} className="pressable -m-1 flex items-center gap-2 rounded-2xl p-1">
+    <div className="rounded-3xl border border-border bg-card p-4 shadow-[0_1px_2px_rgba(0,0,0,0.04)] lg:pl-7 min-[1360px]:flex min-[1360px]:items-center min-[1360px]:gap-6 min-[1360px]:py-3 min-[1360px]:pr-5">
+      <Link
+        href={`/habito/${habit.id}`}
+        className="pressable -m-1 flex items-center gap-2 rounded-2xl p-1 lg:hover:bg-muted min-[1360px]:m-0 min-[1360px]:min-w-0 min-[1360px]:flex-1 min-[1360px]:px-2 min-[1360px]:py-2"
+      >
         <span className="min-w-0 flex-1 truncate text-base font-semibold">{habit.name}</span>
         {streak > 0 && (
           <span className="flex items-center gap-1 rounded-full bg-orange-50 px-2 py-0.5 text-xs font-semibold text-orange-600">
@@ -207,7 +223,7 @@ function HabitCard({
         <ChevronRight className="h-4 w-4 text-muted-foreground/50" />
       </Link>
 
-      <div className="mt-3 grid grid-cols-7 gap-1">
+      <div className="mt-3 grid grid-cols-7 gap-1 min-[1360px]:mt-0 min-[1360px]:w-[21rem] min-[1360px]:shrink-0">
         {weekDays.map((key, i) => (
           <DayDot
             key={key}

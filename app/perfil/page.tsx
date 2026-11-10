@@ -30,7 +30,7 @@ export default function ProfilePage() {
   const fallbackName = user?.displayName?.split(" ")[0]
 
   return (
-    <AppShell nav={false}>
+    <AppShell nav={false} size="narrow">
       <PageHeader
         subtitle="Configurações"
         title="Perfil"

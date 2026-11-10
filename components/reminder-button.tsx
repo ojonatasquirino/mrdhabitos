@@ -3,11 +3,11 @@
 import { useState } from "react"
 import { Bell, BellRing, CalendarPlus } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { BottomSheet, IconButton } from "@/components/app-shell"
+import { BottomSheet, IconButton } from "@/components/ui-kit"
 import { useReminder } from "@/hooks/use-reminder"
 import type { Habit } from "@/lib/types"
 
-export function ReminderButton({ habits }: { habits: Habit[] }) {
+export function ReminderButton({ habits, variant = "icon" }: { habits: Habit[]; variant?: "icon" | "row" }) {
   const { settings, permission, enable, disable, test } = useReminder(habits)
   const [open, setOpen] = useState(false)
   const [time, setTime] = useState(settings.time)
@@ -16,17 +16,33 @@ export function ReminderButton({ habits }: { habits: Habit[] }) {
 
   return (
     <>
-      <IconButton
-        aria-label="Lembrete diário"
-        onClick={() => {
-          setTime(settings.time)
-          setMsg("")
-          setOpen(true)
-        }}
-        className={active ? "text-foreground" : "text-muted-foreground"}
-      >
-        {active ? <BellRing className="h-5 w-5" /> : <Bell className="h-5 w-5" />}
-      </IconButton>
+      {variant === "row" ? (
+        <button
+          type="button"
+          onClick={() => {
+            setTime(settings.time)
+            setMsg("")
+            setOpen(true)
+          }}
+          className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+        >
+          {active ? <BellRing className="h-[18px] w-[18px]" /> : <Bell className="h-[18px] w-[18px]" />}
+          <span className="flex-1 text-left">Lembrete</span>
+          {active && <span className="text-xs tabular-nums">{settings.time}</span>}
+        </button>
+      ) : (
+        <IconButton
+          aria-label="Lembrete diário"
+          onClick={() => {
+            setTime(settings.time)
+            setMsg("")
+            setOpen(true)
+          }}
+          className={active ? "text-foreground" : "text-muted-foreground"}
+        >
+          {active ? <BellRing className="h-5 w-5" /> : <Bell className="h-5 w-5" />}
+        </IconButton>
+      )}
 
       <BottomSheet open={open} onClose={() => setOpen(false)}>
         <h2 className="text-lg font-semibold">Lembrete diário</h2>
