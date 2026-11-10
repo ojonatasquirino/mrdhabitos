@@ -1,24 +1,39 @@
 "use client"
 
-import { useEffect, useState } from "react"
-import { createPortal } from "react-dom"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { BarChart3, Home, Plus } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { DesktopSidebar } from "@/components/desktop-sidebar"
 
-/** Coluna central estilo app: largura de celular, centralizada no desktop. */
-export function AppShell({ children, nav = true }: { children: React.ReactNode; nav?: boolean }) {
+/**
+ * Celular/tablet (< 1024px): coluna central estilo app com barra inferior.
+ * Desktop (>= 1024px, prefixo lg:): menu lateral fixo e conteúdo largo.
+ * Regra: estilos do mobile não são editados; o desktop só acrescenta classes lg:.
+ */
+export function AppShell({
+  children,
+  nav = true,
+  size = "wide",
+}: {
+  children: React.ReactNode
+  nav?: boolean
+  /** largura do conteúdo no desktop */
+  size?: "wide" | "narrow"
+}) {
   const pathname = usePathname()
 
   return (
-    <div className="min-h-dvh bg-muted sm:py-6">
-      <div className="relative mx-auto flex min-h-dvh w-full max-w-md flex-col bg-background sm:min-h-[calc(100dvh-3rem)] sm:rounded-[2rem] sm:border sm:border-border sm:shadow-2xl">
+    <div className="min-h-dvh bg-muted sm:py-6 lg:flex lg:bg-background lg:py-0">
+      <DesktopSidebar pathname={pathname} />
+      <div className="relative mx-auto flex min-h-dvh w-full max-w-md flex-col bg-background sm:min-h-[calc(100dvh-3rem)] sm:rounded-[2rem] sm:border sm:border-border sm:shadow-2xl lg:mx-0 lg:min-h-dvh lg:max-w-none lg:flex-1 lg:rounded-none lg:border-0 lg:shadow-none">
         <main
           key={pathname}
           className={cn(
             "flex-1 px-5 animate-in fade-in duration-300",
             nav ? "pb-32" : "pb-10",
+            "lg:mx-auto lg:w-full lg:px-10 lg:pb-16",
+            size === "wide" ? "lg:max-w-6xl" : "lg:max-w-2xl",
           )}
         >
           {children}
@@ -48,7 +63,7 @@ function BottomNav({ pathname }: { pathname: string }) {
   }
 
   return (
-    <nav className="fixed inset-x-0 bottom-0 z-30 mx-auto w-full max-w-md sm:absolute">
+    <nav className="fixed inset-x-0 bottom-0 z-30 mx-auto w-full max-w-md sm:absolute lg:hidden">
       <div className="safe-bottom mx-3 mb-2 flex items-center rounded-3xl border border-border bg-card/85 px-2 pt-1 shadow-[0_8px_30px_rgba(0,0,0,0.08)] backdrop-blur-xl">
         {item("/", "Hoje", Home)}
         <Link
@@ -80,16 +95,16 @@ export function PageHeader({
   right?: React.ReactNode
 }) {
   return (
-    <header className="safe-top sticky top-0 z-20 -mx-5 mb-5 bg-background px-5 pb-3 sm:rounded-t-[2rem]">
-      <div className="grid grid-cols-[5.5rem_1fr_5.5rem] items-center">
+    <header className="safe-top sticky top-0 z-20 -mx-5 mb-5 bg-background px-5 pb-3 sm:rounded-t-[2rem] lg:-mx-10 lg:mb-8 lg:rounded-none lg:px-10 lg:pb-5 lg:pt-10">
+      <div className="grid grid-cols-[5.5rem_1fr_5.5rem] items-center lg:grid-cols-[auto_1fr_auto] lg:gap-3">
         <div className="flex items-center justify-start gap-0.5">{left}</div>
-        <div className="min-w-0 text-center">
+        <div className="min-w-0 text-center lg:text-left">
           {subtitle && (
             <p className="truncate text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
               {subtitle}
             </p>
           )}
-          <h1 className="truncate text-xl font-semibold tracking-tight">{title}</h1>
+          <h1 className="truncate text-xl font-semibold tracking-tight lg:text-3xl">{title}</h1>
         </div>
         <div className="flex items-center justify-end gap-0.5">{right}</div>
       </div>
@@ -97,48 +112,4 @@ export function PageHeader({
   )
 }
 
-export function IconButton({
-  className,
-  ...props
-}: React.ButtonHTMLAttributes<HTMLButtonElement>) {
-  return (
-    <button
-      type="button"
-      className={cn(
-        "pressable flex h-10 w-10 items-center justify-center rounded-full text-foreground/80 hover:bg-muted",
-        className,
-      )}
-      {...props}
-    />
-  )
-}
-
-export function BottomSheet({
-  open,
-  onClose,
-  children,
-}: {
-  open: boolean
-  onClose: () => void
-  children: React.ReactNode
-}) {
-  const [mounted, setMounted] = useState(false)
-  useEffect(() => setMounted(true), [])
-  if (!open || !mounted) return null
-
-  // Portal no <body>: fica acima da barra de navegação e de qualquer animação da página
-  return createPortal(
-    <div className="fixed inset-0 z-[60] flex items-end justify-center" role="dialog" aria-modal="true">
-      <button
-        aria-label="Fechar"
-        className="absolute inset-0 bg-black/40 animate-in fade-in duration-200"
-        onClick={onClose}
-      />
-      <div className="safe-bottom relative max-h-[90dvh] w-full max-w-md overflow-y-auto rounded-t-3xl bg-card px-5 pt-3 shadow-2xl animate-in slide-in-from-bottom duration-300">
-        <div className="mx-auto mb-4 h-1.5 w-10 rounded-full bg-border" />
-        {children}
-      </div>
-    </div>,
-    document.body,
-  )
-}
+export { IconButton, BottomSheet } from "@/components/ui-kit"

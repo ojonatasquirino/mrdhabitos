@@ -99,13 +99,15 @@ export function HabitDetailPage({ habit, onUpdate, onBack, onDelete }: HabitDeta
         }
       />
 
-      <div className="grid grid-cols-3 gap-2">
+      {/* desktop: estatísticas no topo, calendário e gráfico lado a lado */}
+      <div className="lg:grid lg:grid-cols-2 lg:items-start lg:gap-5">
+      <div className="grid grid-cols-3 gap-2 lg:col-span-2 lg:gap-5">
         <Stat label="Sequência" value={currentStreak(habit)} unit="dias" />
         <Stat label="Recorde" value={bestStreak(habit)} unit="dias" />
         <Stat label="30 dias" value={habitRate(habit, lastDays(30))} unit="%" />
       </div>
 
-      <section className="mt-4 rounded-3xl border border-border p-4">
+      <section className="mt-4 rounded-3xl border border-border p-4 lg:mt-0 lg:p-6">
         <div className="mb-3 flex items-center justify-between">
           <IconButton
             aria-label="Mês anterior"
@@ -172,10 +174,10 @@ export function HabitDetailPage({ habit, onUpdate, onBack, onDelete }: HabitDeta
         </div>
       </section>
 
-      <section className="mt-4 rounded-3xl border border-border p-4">
+      <section className="mt-4 rounded-3xl border border-border p-4 lg:mt-0 lg:p-6">
         <h2 className="text-sm font-semibold">Por semana</h2>
         <p className="mb-3 text-xs text-muted-foreground">Dias feitos nas últimas 8 semanas</p>
-        <ChartContainer config={weeklyConfig} className="aspect-auto h-40 w-full">
+        <ChartContainer config={weeklyConfig} className="aspect-auto h-40 w-full lg:h-80">
           <BarChart data={weekly} margin={{ left: 0, right: 0, top: 8 }}>
             <CartesianGrid vertical={false} />
             <XAxis dataKey="label" tickLine={false} axisLine={false} tickMargin={8} minTickGap={8} />
@@ -188,6 +190,8 @@ export function HabitDetailPage({ habit, onUpdate, onBack, onDelete }: HabitDeta
           </BarChart>
         </ChartContainer>
       </section>
+
+      </div>
 
       <BottomSheet open={confirmDelete} onClose={() => setConfirmDelete(false)}>
         <h2 className="text-lg font-semibold">Excluir &quot;{habit.name}&quot;?</h2>
@@ -210,9 +214,9 @@ export function HabitDetailPage({ habit, onUpdate, onBack, onDelete }: HabitDeta
 
 function Stat({ label, value, unit }: { label: string; value: number; unit: string }) {
   return (
-    <div className="rounded-2xl border border-border p-3">
-      <p className="text-[11px] font-medium text-muted-foreground">{label}</p>
-      <p className="mt-1 text-xl font-semibold tabular-nums">
+    <div className="rounded-2xl border border-border p-3 lg:rounded-3xl lg:p-5">
+      <p className="text-[11px] font-medium text-muted-foreground lg:text-xs">{label}</p>
+      <p className="mt-1 text-xl font-semibold tabular-nums lg:text-3xl">
         {value}
         <span className="ml-0.5 text-xs font-normal text-muted-foreground">{unit}</span>
       </p>

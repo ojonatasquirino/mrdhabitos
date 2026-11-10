@@ -28,6 +28,10 @@ export function useTheme() {
     const initial = saved === "dark" || saved === "light" ? saved : systemTheme()
     setTheme(initial)
     applyTheme(initial)
+    // mantém várias instâncias (menu lateral, perfil, cabeçalho) sincronizadas
+    const sync = () => setTheme(document.documentElement.classList.contains("dark") ? "dark" : "light")
+    window.addEventListener("mrd-theme", sync)
+    return () => window.removeEventListener("mrd-theme", sync)
   }, [])
 
   const toggle = useCallback(() => {
@@ -37,6 +41,7 @@ export function useTheme() {
         localStorage.setItem(KEY, next)
       } catch {}
       applyTheme(next)
+      setTimeout(() => window.dispatchEvent(new Event("mrd-theme")), 0)
       return next
     })
   }, [])
