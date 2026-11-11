@@ -35,7 +35,7 @@ export function Splash() {
     >
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
-        src="/logo.webp"
+        src="/logo.webp?v=2"
         alt=""
         width={112}
         height={112}

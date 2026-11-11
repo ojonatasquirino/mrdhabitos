@@ -2,28 +2,16 @@
 
 import { cn } from "@/lib/utils"
 
-export function Avatar({ photo, name, className }: { photo?: string; name?: string; className?: string }) {
-  const initials =
-    (name ?? "")
-      .split(" ")
-      .filter(Boolean)
-      .slice(0, 2)
-      .map((p) => p[0]?.toUpperCase())
-      .join("") || "MRD".slice(0, 1)
-
+/** Foto do perfil; sem foto, mostra a logo do MRD (nunca iniciais). */
+export function Avatar({ photo, className }: { photo?: string; name?: string; className?: string }) {
   return (
-    <span
-      className={cn(
-        "flex shrink-0 items-center justify-center overflow-hidden rounded-full bg-muted font-semibold text-foreground",
-        className,
-      )}
-    >
-      {photo ? (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img src={photo} alt="Foto de perfil" className="h-full w-full object-cover" />
-      ) : (
-        initials
-      )}
+    <span className={cn("flex shrink-0 items-center justify-center overflow-hidden rounded-full bg-black", className)}>
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src={photo || "/logo.webp?v=2"}
+        alt={photo ? "Foto de perfil" : "MRD"}
+        className="h-full w-full object-cover"
+      />
     </span>
   )
 }
