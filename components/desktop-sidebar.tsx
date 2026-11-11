@@ -37,7 +37,7 @@ export function DesktopSidebar({ pathname }: { pathname: string }) {
     <aside className="sticky top-0 hidden h-dvh w-56 shrink-0 xl:w-64 flex-col border-r border-border bg-background px-4 py-6 lg:flex">
       <Link href="/" className="mb-8 flex items-center gap-3 px-2">
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/logo.webp" alt="" width={36} height={36} className="h-9 w-9 rounded-xl" />
+        <img src="/logo.webp?v=2" alt="" width={36} height={36} className="h-9 w-9 rounded-xl" />
         <span>
           <span className="block text-base font-semibold leading-tight">MRD</span>
           <span className="block text-[11px] leading-tight text-muted-foreground">Mínimo Ridículo Diário</span>

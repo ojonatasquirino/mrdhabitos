@@ -15,7 +15,7 @@ import "./globals.css"
 export const metadata: Metadata = {
   title: "minimo ridículo - Rastreador de Hábitos",
   description: "Um rastreador de hábitos minimalista e sem distrações",
-  icons: { icon: "/favicon.ico", apple: "/apple-icon.png" },
+  icons: { icon: "/favicon.ico", apple: "/apple-icon.png?v=2" },
   appleWebApp: { capable: true, title: "MRD", statusBarStyle: "default" },
 }
 

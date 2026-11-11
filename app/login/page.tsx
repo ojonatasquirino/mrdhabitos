@@ -40,7 +40,7 @@ export default function LoginPage() {
       <div className="hidden lg:flex lg:w-1/2 bg-black text-white flex-col justify-center items-center p-12">
         <div className="max-w-md text-center space-y-6">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/logo.webp" alt="Logo MRD" width={96} height={96} className="mx-auto h-24 w-24 rounded-3xl" />
+          <img src="/logo.webp?v=2" alt="Logo MRD" width={96} height={96} className="mx-auto h-24 w-24 rounded-3xl" />
           <h1 className="text-4xl font-bold">MRD</h1>
           <h2 className="text-xl font-medium text-gray-300">Mínimo Ridículo Diário</h2>
           <p className="text-gray-400 leading-relaxed">
@@ -54,7 +54,7 @@ export default function LoginPage() {
         <div className="w-full max-w-sm space-y-6">
           <div className="lg:hidden text-center space-y-3">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/logo.webp" alt="Logo MRD" width={72} height={72} className="mx-auto h-[72px] w-[72px] rounded-2xl shadow-lg" />
+            <img src="/logo.webp?v=2" alt="Logo MRD" width={72} height={72} className="mx-auto h-[72px] w-[72px] rounded-2xl shadow-lg" />
             <h1 className="text-2xl font-bold text-foreground">MRD</h1>
             <p className="mx-auto max-w-xs text-sm text-muted-foreground">
               Construa hábitos com tarefas tão pequenas, tão pequenas, que será ridículo não executar.
