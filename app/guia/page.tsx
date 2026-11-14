@@ -264,6 +264,8 @@ const SECTIONS: Section[] = [
         <dd>Sim. Entre com a mesma conta e tudo aparece.</dd>
         <dt>O lembrete não tocou.</dt>
         <dd>Use a opção Adicionar ao Calendário no sino. O aviso dentro do app só funciona com ele aberto.</dd>
+        <dt>Como envio uma sugestão?</dt>
+        <dd>Toque no ícone do livro, no topo da tela Hoje, e use &quot;Sugestões e melhorias&quot;. Ela chega direto para o criador do app.</dd>
         <dt>Quantos hábitos devo ter?</dt>
         <dd>De 5 a 10. Comece com poucos e vá adicionando.</dd>
       </dl>
