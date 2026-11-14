@@ -112,9 +112,8 @@ export function HomePage() {
       <PageHeader
         subtitle={dateLabel}
         title={firstName ? `Olá, ${firstName}` : "Hoje"}
-        wideSides
         left={
-          <span className="contents lg:hidden [&>button]:h-[34px] [&>button]:w-[34px] min-[390px]:[&>button]:h-9 min-[390px]:[&>button]:w-9">
+          <span className="contents lg:hidden">
             <IconButton
               aria-label={theme === "dark" ? "Usar tema claro" : "Usar tema escuro"}
               onClick={toggleTheme}
@@ -123,13 +122,15 @@ export function HomePage() {
               {theme === "dark" ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
             </IconButton>
             <ReminderButton habits={habits} />
-            <HelpButton />
           </span>
         }
         right={
-          <Link href="/perfil" aria-label="Perfil" className="pressable rounded-full lg:hidden">
-            <Avatar photo={profile.photo} name={firstName} className="h-9 w-9 text-sm" />
-          </Link>
+          <span className="contents lg:hidden">
+            <HelpButton />
+            <Link href="/perfil" aria-label="Perfil" className="pressable rounded-full">
+              <Avatar photo={profile.photo} name={firstName} className="h-9 w-9 text-sm" />
+            </Link>
+          </span>
         }
       />
 
