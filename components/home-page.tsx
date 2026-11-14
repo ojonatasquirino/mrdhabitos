@@ -29,6 +29,7 @@ import { restrictToVerticalAxis, restrictToParentElement } from "@dnd-kit/modifi
 import { useTheme } from "@/hooks/use-theme"
 import { QUOTES, quoteIndexFor } from "@/lib/quotes"
 import { ReminderButton } from "@/components/reminder-button"
+import { HelpButton } from "@/components/help-button"
 import { useHabits } from "@/hooks/use-habits"
 import { useAuth } from "@/hooks/use-auth"
 import { getWeekDays, toDateKey, WEEKDAY_INITIALS } from "@/lib/dates"
@@ -111,8 +112,9 @@ export function HomePage() {
       <PageHeader
         subtitle={dateLabel}
         title={firstName ? `Olá, ${firstName}` : "Hoje"}
+        wideSides
         left={
-          <span className="contents lg:hidden">
+          <span className="contents lg:hidden [&>button]:h-[34px] [&>button]:w-[34px] min-[390px]:[&>button]:h-9 min-[390px]:[&>button]:w-9">
             <IconButton
               aria-label={theme === "dark" ? "Usar tema claro" : "Usar tema escuro"}
               onClick={toggleTheme}
@@ -121,6 +123,7 @@ export function HomePage() {
               {theme === "dark" ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
             </IconButton>
             <ReminderButton habits={habits} />
+            <HelpButton />
           </span>
         }
         right={

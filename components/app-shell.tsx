@@ -88,7 +88,10 @@ export function PageHeader({
   subtitle,
   left,
   right,
+  wideSides = false,
 }: {
+  /** colunas laterais mais largas (3 ícones à esquerda) */
+  wideSides?: boolean
   title: React.ReactNode
   subtitle?: React.ReactNode
   left?: React.ReactNode
@@ -96,7 +99,14 @@ export function PageHeader({
 }) {
   return (
     <header className="safe-top sticky top-0 z-20 -mx-5 mb-5 bg-background px-5 pb-3 sm:rounded-t-[2rem] lg:-mx-10 lg:mb-8 lg:rounded-none lg:px-10 lg:pb-5 lg:pt-10">
-      <div className="grid grid-cols-[5.5rem_1fr_5.5rem] items-center lg:grid-cols-[auto_1fr_auto] lg:gap-3">
+      <div
+        className={cn(
+          "grid items-center lg:grid-cols-[auto_1fr_auto] lg:gap-3",
+          wideSides
+            ? "grid-cols-[6.5rem_1fr_6.5rem] min-[390px]:grid-cols-[7rem_1fr_7rem]"
+            : "grid-cols-[5.5rem_1fr_5.5rem]",
+        )}
+      >
         <div className="flex items-center justify-start gap-0.5">{left}</div>
         <div className="min-w-0 text-center lg:text-left">
           {subtitle && (
@@ -104,7 +114,14 @@ export function PageHeader({
               {subtitle}
             </p>
           )}
-          <h1 className="truncate text-xl font-semibold tracking-tight lg:text-3xl">{title}</h1>
+          <h1
+            className={cn(
+              "truncate font-semibold tracking-tight lg:text-3xl",
+              wideSides ? "text-[17px] min-[375px]:text-lg min-[390px]:text-xl" : "text-xl",
+            )}
+          >
+            {title}
+          </h1>
         </div>
         <div className="flex items-center justify-end gap-0.5">{right}</div>
       </div>
