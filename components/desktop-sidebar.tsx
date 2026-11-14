@@ -1,7 +1,7 @@
 "use client"
 
 import Link from "next/link"
-import { BarChart3, Home, Moon, Plus, Sun } from "lucide-react"
+import { BarChart3, BookOpen, Home, Moon, Plus, Sun } from "lucide-react"
 import { Avatar } from "@/components/avatar"
 import { ReminderButton } from "@/components/reminder-button"
 import { useAuth } from "@/hooks/use-auth"
@@ -55,6 +55,7 @@ export function DesktopSidebar({ pathname }: { pathname: string }) {
       <nav className="space-y-1">
         {link("/", "Hoje", Home)}
         {link("/analise", "Análise", BarChart3)}
+        {link("/guia", "Guia de uso", BookOpen)}
       </nav>
 
       <div className="mt-auto space-y-1 border-t border-border pt-4">

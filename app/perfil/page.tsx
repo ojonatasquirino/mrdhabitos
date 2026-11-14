@@ -2,7 +2,8 @@
 
 import { useEffect, useRef, useState } from "react"
 import { useRouter } from "next/navigation"
-import { ArrowLeft, Camera, LogOut, Moon, Sun, Trash2 } from "lucide-react"
+import Link from "next/link"
+import { ArrowLeft, BookOpen, Camera, ChevronRight, LogOut, Moon, Sun, Trash2 } from "lucide-react"
 import { AppShell, IconButton, PageHeader } from "@/components/app-shell"
 import { Avatar, imageToAvatar } from "@/components/avatar"
 import { Button } from "@/components/ui/button"
@@ -96,7 +97,7 @@ export default function ProfilePage() {
         disabled={!dirty}
         className="mt-4 h-12 w-full rounded-2xl text-base"
         onClick={() => {
-          setProfile({ name, photo })
+          setProfile({ ...profile, name, photo })
           setMsg("Perfil salvo.")
         }}
       >
@@ -105,6 +106,11 @@ export default function ProfilePage() {
       {msg && <p className="mt-3 text-center text-sm text-muted-foreground">{msg}</p>}
 
       <div className="mt-8 divide-y divide-border overflow-hidden rounded-3xl border border-border">
+        <Link href="/guia" className="flex w-full items-center gap-3 px-5 py-4 text-left">
+          <BookOpen className="h-5 w-5" />
+          <span className="flex-1 text-sm font-medium">Guia de uso</span>
+          <ChevronRight className="h-4 w-4 text-muted-foreground" />
+        </Link>
         <button type="button" onClick={toggle} className="flex w-full items-center gap-3 px-5 py-4 text-left">
           {theme === "dark" ? <Moon className="h-5 w-5" /> : <Sun className="h-5 w-5" />}
           <span className="flex-1 text-sm font-medium">Tema</span>
