@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { BookOpen, ChevronRight, CircleCheck, Lightbulb } from "lucide-react"
+import { BookOpen, ChevronRight, CircleCheck, CircleHelp, Lightbulb } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { BottomSheet, IconButton } from "@/components/ui-kit"
 import { useAuth } from "@/hooks/use-auth"
@@ -28,7 +28,7 @@ function readSent(): SentItem[] {
   }
 }
 
-/** Ícone de livro: abre a Ajuda com o Guia de uso e o envio de sugestões. */
+/** Ícone de interrogação (suporte): abre a Ajuda com o Guia de uso e o envio de sugestões. */
 export function HelpButton({ variant = "icon" }: { variant?: "icon" | "row" }) {
   const [open, setOpen] = useState(false)
 
@@ -40,12 +40,17 @@ export function HelpButton({ variant = "icon" }: { variant?: "icon" | "row" }) {
           onClick={() => setOpen(true)}
           className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
         >
-          <BookOpen className="h-[18px] w-[18px]" />
-          Ajuda e sugestões
+          <CircleHelp className="h-[18px] w-[18px]" />
+          Ajuda e suporte
         </button>
       ) : (
-        <IconButton aria-label="Ajuda e sugestões" onClick={() => setOpen(true)} className="text-muted-foreground">
-          <BookOpen className="h-5 w-5" />
+        <IconButton
+          aria-label="Ajuda e suporte"
+          title="Ajuda e suporte"
+          onClick={() => setOpen(true)}
+          className="text-muted-foreground"
+        >
+          <CircleHelp className="h-5 w-5" />
         </IconButton>
       )}
       <BottomSheet open={open} onClose={() => setOpen(false)}>
