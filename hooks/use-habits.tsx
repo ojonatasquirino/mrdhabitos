@@ -15,6 +15,8 @@ export interface Profile {
   name?: string
   /** foto em data URL JPEG pequena (até ~256px) */
   photo?: string
+  /** já viu (ou pulou) a introdução */
+  onboarded?: boolean
 }
 const LEGACY_AUTH_KEYS = ["mrd-users", "mrd-current-user"]
 
@@ -234,6 +236,7 @@ export function HabitsProvider({ children }: { children: React.ReactNode }) {
       const clean: Profile = {}
       if (next.name?.trim()) clean.name = next.name.trim().slice(0, 30)
       if (next.photo) clean.photo = next.photo
+      if (next.onboarded) clean.onboarded = true
       setProfileState(clean)
       writeProfile(clean)
       if (enabled && uid) {

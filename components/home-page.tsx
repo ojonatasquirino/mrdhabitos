@@ -1,7 +1,9 @@
 "use client"
 
-import { useMemo, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
+import { Onboarding } from "@/components/onboarding"
 import { Check, ChevronRight, Flame, GripVertical, Moon, NotebookPen, Plus, Quote as QuoteIcon, Sun, X } from "lucide-react"
 import { AppShell, BottomSheet, IconButton, PageHeader } from "@/components/app-shell"
 import { Button } from "@/components/ui/button"
@@ -41,7 +43,28 @@ function haptic() {
 }
 
 export function HomePage() {
-  const { habits, ready, updateHabit, notes, setNote, moveHabit, profile } = useHabits()
+  const { habits, ready, updateHabit, notes, setNote, moveHabit, profile, setProfile } = useHabits()
+  const router = useRouter()
+  const [intro, setIntro] = useState(false)
+
+  // introdução só no primeiro acesso: conta sem hábitos e que ainda não viu/pulou
+  useEffect(() => {
+    if (!ready || profile.onboarded || habits.length > 0) return
+    let seen = false
+    try {
+      seen = localStorage.getItem("mrd-onboarded") === "1"
+    } catch {}
+    if (!seen) setIntro(true)
+  }, [ready, profile.onboarded, habits.length])
+
+  const closeIntro = (goCreate: boolean) => {
+    setIntro(false)
+    try {
+      localStorage.setItem("mrd-onboarded", "1")
+    } catch {}
+    setProfile({ ...profile, onboarded: true })
+    if (goCreate) router.push("/novo")
+  }
   const { theme, toggle: toggleTheme } = useTheme()
   const { user } = useAuth()
   const today = new Date()
@@ -106,6 +129,8 @@ export function HomePage() {
           </Link>
         }
       />
+
+      <Onboarding open={intro} onClose={() => closeIntro(false)} onFinish={() => closeIntro(true)} />
 
       {/* Desktop: hábitos à esquerda, resumo/frase/nota numa coluna à direita. Mobile: mesma ordem de antes. */}
       <div className="lg:grid lg:grid-cols-[minmax(0,1fr)_300px] lg:items-start lg:gap-6 xl:grid-cols-[minmax(0,1fr)_320px] xl:gap-8">
@@ -301,6 +326,9 @@ function EmptyState() {
       >
         <Plus className="h-4 w-4" />
         Criar primeiro hábito
+      </Link>
+      <Link href="/guia" className="mt-4 text-sm font-medium text-muted-foreground underline-offset-4 hover:underline">
+        Como funciona?
       </Link>
     </section>
   )
