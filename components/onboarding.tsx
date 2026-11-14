@@ -72,7 +72,7 @@ export function Onboarding({
     },
     {
       title: "Deixe tudo no jeito",
-      body: "Adicione o MRD à tela de início e ative o lembrete diário no sino. Dúvidas? Toque no ícone do livro, no topo.",
+      body: "Adicione o MRD à tela de início e ative o lembrete diário no sino. Dúvidas? Toque no ícone de interrogação, no topo.",
       visual: <SetupVisual />,
     },
   ]

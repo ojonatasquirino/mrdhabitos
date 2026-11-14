@@ -112,6 +112,7 @@ export function HomePage() {
       <PageHeader
         subtitle={dateLabel}
         title={firstName ? `Olá, ${firstName}` : "Hoje"}
+        spread
         left={
           <span className="contents lg:hidden">
             <IconButton
@@ -121,12 +122,18 @@ export function HomePage() {
             >
               {theme === "dark" ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
             </IconButton>
-            <ReminderButton habits={habits} />
+            {/* centralizado entre a lua e a saudação */}
+            <span className="flex flex-1 justify-center">
+              <ReminderButton habits={habits} />
+            </span>
           </span>
         }
         right={
           <span className="contents lg:hidden">
-            <HelpButton />
+            {/* centralizado entre a saudação e a foto */}
+            <span className="flex flex-1 justify-center">
+              <HelpButton />
+            </span>
             <Link href="/perfil" aria-label="Perfil" className="pressable rounded-full">
               <Avatar photo={profile.photo} name={firstName} className="h-9 w-9 text-sm" />
             </Link>
