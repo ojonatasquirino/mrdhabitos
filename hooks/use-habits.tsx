@@ -20,6 +20,10 @@ export interface Profile {
   photo?: string
   /** já viu (ou pulou) a introdução */
   onboarded?: boolean
+  /** foco da semana definido na revisão de sábado (week = domingo da semana em que vale) */
+  weekFocus?: { week: string; text: string }
+  /** domingo (YYYY-MM-DD) da última semana revisada */
+  lastReview?: string
   /** meta de sono por noite, em horas (padrão 7) */
   sleepGoal?: number
   /** chave da caixa de entrada do sono (app Atalhos -> /api/sono) */
@@ -320,6 +324,9 @@ export function HabitsProvider({ children }: { children: React.ReactNode }) {
       if (next.photo) clean.photo = next.photo
       if (next.onboarded) clean.onboarded = true
       if (next.sleepKey) clean.sleepKey = next.sleepKey
+      if (next.weekFocus?.text?.trim())
+        clean.weekFocus = { week: next.weekFocus.week, text: next.weekFocus.text.trim().slice(0, 80) }
+      if (next.lastReview) clean.lastReview = next.lastReview
       if (next.sleepGoal && next.sleepGoal >= 4 && next.sleepGoal <= 12)
         clean.sleepGoal = Math.round(next.sleepGoal * 4) / 4
       setProfileState(clean)
