@@ -1,8 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { BedDouble, Check, ChevronRight, Copy, Heart, Minus, Plus } from "lucide-react"
-import { useHabits } from "@/hooks/use-habits"
+import { BedDouble, Minus, Plus } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { BottomSheet } from "@/components/ui-kit"
 import { addDays, toDateKey } from "@/lib/dates"
@@ -24,7 +23,6 @@ export function SleepCard({
   onSave: (key: string, hours: number | null) => void
 }) {
   const [open, setOpen] = useState(false)
-  const [health, setHealth] = useState(false)
   const today = new Date()
   const todayKey = toDateKey(today)
   const value = sleep[todayKey]
@@ -70,12 +68,7 @@ export function SleepCard({
           onSave(todayKey, h)
           setOpen(false)
         }}
-        onHealth={() => {
-          setOpen(false)
-          setHealth(true)
-        }}
       />
-      <HealthSheet open={health} onClose={() => setHealth(false)} />
     </>
   )
 }
@@ -85,13 +78,11 @@ function SleepSheet({
   initial,
   onClose,
   onSave,
-  onHealth,
 }: {
   open: boolean
   initial?: number
   onClose: () => void
   onSave: (hours: number | null) => void
-  onHealth: () => void
 }) {
   const [h, setH] = useState(initial ?? 7.5)
   useEffect(() => {
@@ -162,107 +153,6 @@ function SleepSheet({
         )}
       </div>
 
-      <button
-        type="button"
-        onClick={onHealth}
-        className="pressable mb-2 mt-4 flex w-full items-center gap-3 rounded-2xl border border-border p-4 text-left"
-      >
-        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-red-500/10 text-red-500">
-          <Heart className="h-5 w-5 fill-current" />
-        </span>
-        <span className="min-w-0 flex-1">
-          <span className="block text-sm font-semibold">Importar do app Saúde</span>
-          <span className="block text-xs text-muted-foreground">iPhone: registra sozinho todo dia</span>
-        </span>
-        <ChevronRight className="h-4 w-4 text-muted-foreground" />
-      </button>
-    </BottomSheet>
-  )
-}
-
-/** Link do atalho compartilhado pelo iCloud (preencher quando o atalho oficial estiver pronto). */
-const SHORTCUT_URL = ""
-
-/** Chave pessoal + instruções para o app Atalhos enviar o sono do app Saúde. */
-function HealthSheet({ open, onClose }: { open: boolean; onClose: () => void }) {
-  const { ensureSleepKey } = useHabits()
-  const [key, setKey] = useState<string | null>(null)
-  const [state, setState] = useState<"loading" | "ready" | "error" | "offline">("loading")
-  const [copied, setCopied] = useState(false)
-
-  useEffect(() => {
-    if (!open) return
-    setCopied(false)
-    setState("loading")
-    ensureSleepKey()
-      .then((k) => {
-        if (k) {
-          setKey(k)
-          setState("ready")
-        } else setState("offline")
-      })
-      .catch(() => setState("error"))
-  }, [open, ensureSleepKey])
-
-  return (
-    <BottomSheet open={open} onClose={onClose}>
-      <div className="flex items-center gap-3">
-        <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-red-500/10 text-red-500">
-          <Heart className="h-5 w-5 fill-current" />
-        </span>
-        <div>
-          <h2 className="text-lg font-semibold">Sono do app Saúde</h2>
-          <p className="text-xs text-muted-foreground">Configura uma vez no iPhone</p>
-        </div>
-      </div>
-
-      <p className="mt-4 text-sm leading-relaxed text-muted-foreground">
-        O iPhone não deixa sites lerem o Saúde. Então o app <b className="text-foreground">Atalhos</b>, da própria
-        Apple, lê seu sono todo dia e manda para o MRD. Funciona com Apple Watch ou com o Sono do iPhone.
-      </p>
-
-      <div className="mt-5 flex items-center gap-2 rounded-2xl bg-muted p-3">
-        <span className="min-w-0 flex-1">
-          <span className="block text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
-            Sua chave pessoal
-          </span>
-          <span className="block truncate font-mono text-sm">
-            {state === "ready" && key}
-            {state === "loading" && "gerando..."}
-            {state === "offline" && "entre na sua conta para gerar"}
-            {state === "error" && "não foi possível gerar agora"}
-          </span>
-        </span>
-        <Button
-          variant="outline"
-          className="h-10 rounded-xl"
-          disabled={state !== "ready"}
-          onClick={() => {
-            if (!key) return
-            navigator.clipboard?.writeText(key).catch(() => {})
-            setCopied(true)
-          }}
-        >
-          {copied ? <Check className="mr-1 h-4 w-4" /> : <Copy className="mr-1 h-4 w-4" />}
-          {copied ? "Copiada" : "Copiar"}
-        </Button>
-      </div>
-      <p className="mt-2 text-[11px] text-muted-foreground">Não compartilhe sua chave: ela permite enviar sono para a sua conta.</p>
-
-      {SHORTCUT_URL ? (
-        <Button asChild className="mt-4 h-12 w-full rounded-2xl text-base">
-          <a href={SHORTCUT_URL} target="_blank" rel="noopener noreferrer">
-            Adicionar atalho ao iPhone
-          </a>
-        </Button>
-      ) : (
-        <a
-          href="/guia"
-          className="pressable mt-4 flex h-12 w-full items-center justify-center rounded-2xl bg-foreground text-base font-semibold text-background"
-        >
-          Ver passo a passo no Guia
-        </a>
-      )}
       <div className="h-2" />
     </BottomSheet>
   )
