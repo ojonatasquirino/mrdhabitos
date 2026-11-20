@@ -1,7 +1,7 @@
 "use client"
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react"
-import { doc, getDoc, onSnapshot, setDoc } from "firebase/firestore"
+import { collection, deleteDoc, doc, getDoc, getDocs, onSnapshot, setDoc } from "firebase/firestore"
 import type { Habit } from "@/lib/types"
 import { firebaseDb } from "@/lib/firebase"
 import { useAuth } from "@/hooks/use-auth"
@@ -18,6 +18,8 @@ export interface Profile {
   photo?: string
   /** já viu (ou pulou) a introdução */
   onboarded?: boolean
+  /** chave da caixa de entrada do sono (app Atalhos -> /api/sono) */
+  sleepKey?: string
 }
 const LEGACY_AUTH_KEYS = ["mrd-users", "mrd-current-user"]
 
@@ -32,6 +34,8 @@ interface HabitsContextValue {
   /** horas dormidas na noite que termina no dia (chave YYYY-MM-DD) */
   sleep: Record<string, number>
   setSleep: (key: string, hours: number | null) => void
+  /** cria (uma vez) e devolve a chave pessoal para o atalho do app Saúde */
+  ensureSleepKey: () => Promise<string | null>
   setNote: (key: string, text: string) => void
   /** move o hábito para a posição do outro (arrastar e soltar) */
   moveHabit: (fromId: string, toId: string) => void
@@ -268,6 +272,7 @@ export function HabitsProvider({ children }: { children: React.ReactNode }) {
       if (next.name?.trim()) clean.name = next.name.trim().slice(0, 30)
       if (next.photo) clean.photo = next.photo
       if (next.onboarded) clean.onboarded = true
+      if (next.sleepKey) clean.sleepKey = next.sleepKey
       setProfileState(clean)
       writeProfile(clean)
       if (enabled && uid) {
@@ -293,6 +298,57 @@ export function HabitsProvider({ children }: { children: React.ReactNode }) {
     [enabled, uid],
   )
 
+  const profileRef = useRef<Profile>({})
+  useEffect(() => {
+    profileRef.current = profile
+  }, [profile])
+
+  const ensureSleepKey = useCallback(async () => {
+    if (!enabled || !uid) return null
+    const existing = profileRef.current.sleepKey
+    if (existing) return existing
+    const alphabet = "abcdefghijklmnopqrstuvwxyz0123456789"
+    const bytes = crypto.getRandomValues(new Uint8Array(20))
+    const key = "mrd_" + Array.from(bytes, (b) => alphabet[b % alphabet.length]).join("")
+    await setDoc(doc(firebaseDb(), "sleepInbox", key), { uid })
+    setProfile({ ...profileRef.current, sleepKey: key })
+    return key
+  }, [enabled, uid, setProfile])
+
+  // traz o sono enviado pelo app Atalhos: preenche só noites sem registro manual
+  const sleepKey = profile.sleepKey
+  useEffect(() => {
+    if (!ready || !enabled || !uid || !sleepKey) return
+    let cancelled = false
+    ;(async () => {
+      try {
+        const snap = await getDocs(collection(firebaseDb(), "sleepInbox", sleepKey, "dias"))
+        if (cancelled || snap.empty) return
+        const next = { ...sleepRef.current }
+        let changed = false
+        snap.forEach((d) => {
+          const h = Number(d.data().horas)
+          if (Number.isFinite(h) && h > 0 && next[d.id] == null) {
+            next[d.id] = Math.round(Math.min(h, 16) * 4) / 4
+            changed = true
+          }
+        })
+        if (changed) {
+          sleepRef.current = next
+          setSleepState(next)
+          writeSleep(next)
+          await setDoc(doc(firebaseDb(), "users", uid), { sleep: next }, { mergeFields: ["sleep"] })
+        }
+        await Promise.all(snap.docs.map((d) => deleteDoc(d.ref)))
+      } catch (e) {
+        console.error(e)
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [ready, enabled, uid, sleepKey])
+
   const value = useMemo(
     () => ({
       habits,
@@ -304,11 +360,26 @@ export function HabitsProvider({ children }: { children: React.ReactNode }) {
       setNote,
       sleep,
       setSleep,
+      ensureSleepKey,
       moveHabit,
       profile,
       setProfile,
     }),
-    [habits, ready, addHabit, updateHabit, deleteHabit, notes, setNote, sleep, setSleep, moveHabit, profile, setProfile],
+    [
+      habits,
+      ready,
+      addHabit,
+      updateHabit,
+      deleteHabit,
+      notes,
+      setNote,
+      sleep,
+      setSleep,
+      ensureSleepKey,
+      moveHabit,
+      profile,
+      setProfile,
+    ],
   )
 
   return <HabitsContext.Provider value={value}>{children}</HabitsContext.Provider>
