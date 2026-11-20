@@ -52,28 +52,31 @@ function BottomNav({ pathname }: { pathname: string }) {
         href={href}
         aria-current={active ? "page" : undefined}
         className={cn(
-          "pressable flex flex-1 flex-col items-center gap-1 py-2 text-[11px] font-medium",
-          active ? "text-foreground" : "text-muted-foreground",
+          "pressable flex flex-1 flex-col items-center justify-center gap-0.5 rounded-full py-1.5 text-[11px] font-medium transition-colors",
+          active ? "glass-pill text-foreground" : "text-muted-foreground",
         )}
       >
-        <Icon className="h-5 w-5" strokeWidth={active ? 2.4 : 2} />
+        <Icon className="h-[22px] w-[22px]" strokeWidth={active ? 2.3 : 1.9} />
         {label}
       </Link>
     )
   }
 
+  // Estilo iOS: cápsula de vidro com as abas + botão redondo de vidro ao lado
   return (
-    <nav className="fixed inset-x-0 bottom-0 z-30 mx-auto w-full max-w-md sm:absolute lg:hidden">
-      <div className="safe-bottom mx-3 mb-2 flex items-center rounded-3xl border border-border bg-card/85 px-2 pt-1 shadow-[0_8px_30px_rgba(0,0,0,0.08)] backdrop-blur-xl">
-        {item("/", "Hoje", Home)}
+    <nav className="pointer-events-none fixed inset-x-0 bottom-0 z-30 mx-auto w-full max-w-md sm:absolute lg:hidden">
+      <div className="safe-bottom mx-4 mb-2 flex items-center gap-3">
+        <div className="glass pointer-events-auto flex h-16 flex-1 items-center gap-1 rounded-full p-1.5">
+          {item("/", "Hoje", Home)}
+          {item("/analise", "Análise", BarChart3)}
+        </div>
         <Link
           href="/novo"
           aria-label="Novo hábito"
-          className="pressable -mt-7 flex h-14 w-14 items-center justify-center rounded-full bg-foreground text-background shadow-lg shadow-black/25"
+          className="glass pressable pointer-events-auto flex h-16 w-16 shrink-0 items-center justify-center rounded-full text-foreground"
         >
-          <Plus className="h-6 w-6" />
+          <Plus className="h-7 w-7" strokeWidth={2.2} />
         </Link>
-        {item("/analise", "Análise", BarChart3)}
       </div>
     </nav>
   )
