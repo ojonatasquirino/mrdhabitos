@@ -1,5 +1,5 @@
 // MRD service worker: cache do app para abrir offline + clique em notificação
-const CACHE = "mrd-v21"
+const CACHE = "mrd-v22"
 const SHELL = ["/", "/novo", "/analise", "/login", "/icon-192.png?v=2"]
 
 self.addEventListener("install", (event) => {
