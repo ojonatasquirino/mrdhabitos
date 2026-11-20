@@ -5,6 +5,27 @@ service cloud.firestore {
     match /users/{uid} {
       allow read, write: if request.auth != null && request.auth.uid == uid;
     }
+
+    // caixa de entrada do sono (app Atalhos do iPhone -> /api/sono -> aqui)
+    // a chave é um segredo aleatório; só o dono lê e apaga
+    match /sleepInbox/{key} {
+      allow read, delete: if request.auth != null && resource.data.uid == request.auth.uid;
+      allow create: if request.auth != null
+        && request.resource.data.uid == request.auth.uid
+        && key.matches('mrd_[a-z0-9]{20}');
+
+      match /dias/{dia} {
+        allow read, delete: if request.auth != null
+          && get(/databases/$(database)/documents/sleepInbox/$(key)).data.uid == request.auth.uid;
+        allow create, update: if exists(/databases/$(database)/documents/sleepInbox/$(key))
+          && dia.matches('[0-9]{4}-[0-9]{2}-[0-9]{2}')
+          && request.resource.data.keys().hasOnly(['horas', 'recebidoEm'])
+          && request.resource.data.horas is number
+          && request.resource.data.horas > 0
+          && request.resource.data.horas <= 16;
+      }
+    }
+
     match /{document=**} {
       allow read, write: if false;
     }

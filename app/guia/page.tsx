@@ -138,7 +138,7 @@ const SECTIONS: Section[] = [
     id: "sono",
     icon: BedDouble,
     title: "Sono",
-    summary: "Registrar horas dormidas e ver o gráfico",
+    summary: "Registrar horas dormidas e importar do app Saúde",
     body: (
       <>
         <p>
@@ -152,14 +152,55 @@ const SECTIONS: Section[] = [
           </li>
           <li>Errou? Toque de novo e ajuste, ou apague o registro do dia.</li>
           <li>
-            <b>Em breve, automático no iPhone:</b> o sono registrado pelo Apple Watch ou pelo iPhone vai entrar no MRD
-            sozinho, pelo app <b>Atalhos</b> da Apple.
+            <b>Automático (iPhone):</b> o iPhone não deixa sites lerem o app Saúde, então o app <b>Atalhos</b>, da
+            Apple, faz isso por você. Configure uma vez seguindo os passos abaixo.
           </li>
           <li>
             Na <b>Análise</b>, o gráfico Sono mostra uma barra por noite, a sua média (linha tracejada), a melhor noite
             e quantas noites tiveram 7 horas ou mais.
           </li>
         </ul>
+        <p className="mt-4">
+          <b>Configurar o app Saúde (uma vez):</b>
+        </p>
+        <ol>
+          <li>
+            No MRD, toque no card de sono &gt; <b>Importar do app Saúde</b> &gt; <b>Copiar</b> a sua chave.
+          </li>
+          <li>
+            Abra o app <b>Atalhos</b> &gt; toque em <b>+</b> e dê o nome <b>Sono para o MRD</b>.
+          </li>
+          <li>
+            Adicione <b>Encontrar Amostras de Saúde</b>: tipo <b>Análise do Sono</b>, com os filtros{" "}
+            <b>Data de Início está nos últimos 1 dias</b>, <b>Valor não é Em Cama</b> e <b>Valor não é Acordado</b>.
+          </li>
+          <li>
+            Adicione <b>Obter Detalhes das Amostras de Saúde</b> e escolha <b>Duração</b>.
+          </li>
+          <li>
+            Adicione <b>Calcular Estatísticas</b> e escolha <b>Soma</b>.
+          </li>
+          <li>
+            Adicione <b>Obter Conteúdo da URL</b> com <b>https://mrdhabitos.vercel.app/api/sono</b>, método{" "}
+            <b>POST</b>, corpo <b>JSON</b> com dois campos de texto: <b>chave</b> (cole sua chave) e <b>valor</b>{" "}
+            (escolha a variável <b>Estatísticas</b>).
+          </li>
+          <li>
+            Opcional: adicione <b>Obter Valor do Dicionário</b> com a chave <b>texto</b> e depois{" "}
+            <b>Mostrar Notificação</b>, para ver a confirmação.
+          </li>
+          <li>
+            Toque em ▶ para testar. Deve aparecer &quot;MRD: sono de 7h30 registrado ✓&quot; e o valor entra no app
+            na próxima vez que você abrir.
+          </li>
+          <li>
+            Na aba <b>Automação</b>: <b>+</b> &gt; <b>Hora do Dia</b> &gt; 9:00, Diariamente &gt;{" "}
+            <b>Executar Imediatamente</b> &gt; escolha <b>Sono para o MRD</b>.
+          </li>
+        </ol>
+        <p className="mt-3">
+          Se você registrar o sono manualmente num dia, o valor manual é mantido e o do app Saúde é ignorado.
+        </p>
       </>
     ),
   },
@@ -296,6 +337,8 @@ const SECTIONS: Section[] = [
         <dd>Use a opção Adicionar ao Calendário no sino. O aviso dentro do app só funciona com ele aberto.</dd>
         <dt>Como envio uma sugestão?</dt>
         <dd>Toque no ícone de interrogação (?), no topo da tela Hoje, e use &quot;Sugestões e melhorias&quot;. Ela chega direto para o criador do app.</dd>
+        <dt>O sono do app Saúde não entrou.</dt>
+        <dd>Rode o atalho no app Atalhos e veja a mensagem. Confira se a automação está com &quot;Executar Imediatamente&quot; e se o atalho tem permissão para ler o Sono no Saúde.</dd>
         <dt>Quantos hábitos devo ter?</dt>
         <dd>De 5 a 10. Comece com poucos e vá adicionando.</dd>
       </dl>
