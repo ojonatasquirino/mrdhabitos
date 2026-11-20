@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { Onboarding } from "@/components/onboarding"
-import { Check, ChevronRight, Flame, GripVertical, Moon, NotebookPen, Plus, Quote as QuoteIcon, Sun, X } from "lucide-react"
+import { Check, ChevronRight, Flag, Flame, GripVertical, Moon, NotebookPen, Plus, Quote as QuoteIcon, Sun, X } from "lucide-react"
 import { AppShell, BottomSheet, IconButton, PageHeader } from "@/components/app-shell"
 import { Button } from "@/components/ui/button"
 import { Avatar } from "@/components/avatar"
@@ -31,6 +31,8 @@ import { QUOTES, quoteIndexFor } from "@/lib/quotes"
 import { ReminderButton } from "@/components/reminder-button"
 import { HelpButton } from "@/components/help-button"
 import { SleepCard } from "@/components/sleep"
+import { ProjectToast, type ProjectNudge } from "@/components/projects"
+import { applyReading, type Project } from "@/lib/projects"
 import { useHabits } from "@/hooks/use-habits"
 import { useAuth } from "@/hooks/use-auth"
 import { getWeekDays, toDateKey, WEEKDAY_INITIALS } from "@/lib/dates"
@@ -45,7 +47,9 @@ function haptic() {
 }
 
 export function HomePage() {
-  const { habits, ready, updateHabit, notes, setNote, sleep, setSleep, moveHabit, profile, setProfile } = useHabits()
+  const { habits, ready, updateHabit, notes, setNote, sleep, setSleep, moveHabit, profile, setProfile, projects, saveProject } =
+    useHabits()
+  const [nudge, setNudge] = useState<ProjectNudge | null>(null)
   const router = useRouter()
   const [intro, setIntro] = useState(false)
 
@@ -91,9 +95,22 @@ export function HomePage() {
   const weekday = today.toLocaleDateString("pt-BR", { weekday: "long" }).split("-")[0]
   const dateLabel = `${weekday}, ${today.getDate()} ${today.toLocaleDateString("pt-BR", { month: "short" }).replace(".", "")}`
 
+  const projectOf = (habitId: string) => projects.find((p) => p.status === "ativo" && p.habitId === habitId)
+
   const toggle = (habit: Habit, key: string) => {
     haptic()
-    updateHabit(toggleDay(habit, key))
+    const next = toggleDay(habit, key)
+    updateHabit(next)
+    // hábito ligado a projeto: o check alimenta o projeto
+    const project = projectOf(habit.id)
+    if (!project) return
+    const done = next.completions[key] === true
+    if (project.kind === "leitura") saveProject(applyReading(project, key, done ? (project.perCheck ?? 1) : 0))
+    if (done) {
+      setNudge({ projectId: project.id, dayKey: key, stamp: Date.now() })
+      const stamp = Date.now()
+      window.setTimeout(() => setNudge((n) => (n && n.stamp <= stamp ? null : n)), 7000)
+    } else setNudge(null)
   }
 
   if (!ready) {
@@ -142,6 +159,16 @@ export function HomePage() {
         }
       />
 
+      <ProjectToast
+        nudge={nudge}
+        onClose={() => setNudge(null)}
+        onReadingChange={(id, key, pages) => {
+          const p = projects.find((x) => x.id === id)
+          if (p) saveProject(applyReading(p, key, pages))
+          setNudge((n) => (n ? { ...n, stamp: Date.now() } : n))
+        }}
+      />
+
       <Onboarding open={intro} onClose={() => closeIntro(false)} onFinish={() => closeIntro(true)} />
 
       {/* Desktop: hábitos à esquerda, resumo/frase/nota numa coluna à direita. Mobile: mesma ordem de antes. */}
@@ -173,7 +200,13 @@ export function HomePage() {
                   <ul className="mt-6 space-y-3 lg:mt-0">
                     {habits.map((habit) => (
                       <SortableItem key={habit.id} id={habit.id}>
-                        <HabitCard habit={habit} weekDays={weekDays} todayKey={todayKey} onToggle={toggle} />
+                        <HabitCard
+                          habit={habit}
+                          project={projectOf(habit.id)}
+                          weekDays={weekDays}
+                          todayKey={todayKey}
+                          onToggle={toggle}
+                        />
                       </SortableItem>
                     ))}
                   </ul>
@@ -234,11 +267,13 @@ function TodaySummary({ pct, done, total }: { pct: number; done: number; total: 
 
 function HabitCard({
   habit,
+  project,
   weekDays,
   todayKey,
   onToggle,
 }: {
   habit: Habit
+  project?: Project
   weekDays: string[]
   todayKey: string
   onToggle: (habit: Habit, key: string) => void
@@ -251,7 +286,15 @@ function HabitCard({
         href={`/habito/${habit.id}`}
         className="pressable -m-1 flex items-center gap-2 rounded-2xl p-1 lg:hover:bg-muted min-[1360px]:m-0 min-[1360px]:min-w-0 min-[1360px]:flex-1 min-[1360px]:px-2 min-[1360px]:py-2"
       >
-        <span className="min-w-0 flex-1 truncate text-base font-semibold">{habit.name}</span>
+        <span className="min-w-0 flex-1">
+          <span className="block truncate text-base font-semibold">{habit.name}</span>
+          {project && (
+            <span className="mt-0.5 flex items-center gap-1 truncate text-xs text-muted-foreground">
+              <Flag className="h-3 w-3 shrink-0" />
+              {project.name}
+            </span>
+          )}
+        </span>
         {streak > 0 && (
           <span className="flex items-center gap-1 rounded-full bg-orange-50 px-2 py-0.5 text-xs font-semibold text-orange-600">
             <Flame className="h-3.5 w-3.5" />

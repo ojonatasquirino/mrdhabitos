@@ -3,6 +3,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react"
 import { collection, deleteDoc, doc, getDoc, getDocs, onSnapshot, setDoc } from "firebase/firestore"
 import type { Habit } from "@/lib/types"
+import type { Project } from "@/lib/projects"
 import { firebaseDb } from "@/lib/firebase"
 import { useAuth } from "@/hooks/use-auth"
 
@@ -10,6 +11,7 @@ const STORAGE_KEY = "minimo-ridiculo-habits"
 const NOTES_KEY = "mrd-notes"
 const SLEEP_KEY = "mrd-sleep"
 const PROFILE_KEY = "mrd-profile"
+const PROJECTS_KEY = "mrd-projects"
 
 export interface Profile {
   /** apelido exibido no app */
@@ -41,6 +43,10 @@ interface HabitsContextValue {
   moveHabit: (fromId: string, toId: string) => void
   profile: Profile
   setProfile: (profile: Profile) => void
+  /** projetos com prazo, alimentados por um hábito */
+  projects: Project[]
+  saveProject: (project: Project) => void
+  deleteProject: (id: string) => void
 }
 
 const HabitsContext = createContext<HabitsContextValue | null>(null)
@@ -52,6 +58,21 @@ function readLocal(): Habit[] {
   } catch {
     return []
   }
+}
+
+function readProjects(): Project[] {
+  try {
+    const parsed = JSON.parse(localStorage.getItem(PROJECTS_KEY) ?? "[]")
+    return Array.isArray(parsed) ? parsed : []
+  } catch {
+    return []
+  }
+}
+
+function writeProjects(projects: Project[]) {
+  try {
+    localStorage.setItem(PROJECTS_KEY, JSON.stringify(projects))
+  } catch {}
 }
 
 function readNotes(): Record<string, string> {
@@ -122,6 +143,8 @@ export function HabitsProvider({ children }: { children: React.ReactNode }) {
   const [sleep, setSleepState] = useState<Record<string, number>>({})
   const sleepRef = useRef<Record<string, number>>({})
   const [profile, setProfileState] = useState<Profile>({})
+  const [projects, setProjectsState] = useState<Project[]>([])
+  const projectsRef = useRef<Project[]>([])
   const uid = user?.uid
 
   useEffect(() => {
@@ -134,6 +157,12 @@ export function HabitsProvider({ children }: { children: React.ReactNode }) {
     const applyProfile = (next: Profile) => {
       setProfileState(next)
       writeProfile(next)
+    }
+
+    const applyProjects = (next: Project[]) => {
+      projectsRef.current = next
+      setProjectsState(next)
+      writeProjects(next)
     }
 
     const applySleep = (next: Record<string, number>) => {
@@ -160,12 +189,14 @@ export function HabitsProvider({ children }: { children: React.ReactNode }) {
       applyNotes(enabled ? {} : readNotes())
       applySleep(enabled ? {} : readSleep())
       applyProfile(enabled ? {} : readProfile())
+      applyProjects(enabled ? [] : readProjects())
       if (enabled) setReady(true)
       const onStorage = (e: StorageEvent) => {
         if (e.key === STORAGE_KEY) apply(readLocal())
         if (e.key === NOTES_KEY) applyNotes(readNotes())
         if (e.key === SLEEP_KEY) applySleep(readSleep())
         if (e.key === PROFILE_KEY) applyProfile(readProfile())
+        if (e.key === PROJECTS_KEY) applyProjects(readProjects())
       }
       window.addEventListener("storage", onStorage)
       return () => window.removeEventListener("storage", onStorage)
@@ -189,6 +220,7 @@ export function HabitsProvider({ children }: { children: React.ReactNode }) {
         applyNotes((s.data()?.notes as Record<string, string>) ?? {})
         applySleep((s.data()?.sleep as Record<string, number>) ?? {})
         applyProfile((s.data()?.profile as Profile) ?? {})
+        applyProjects((s.data()?.projects as Project[]) ?? [])
       })
     })()
 
@@ -197,6 +229,7 @@ export function HabitsProvider({ children }: { children: React.ReactNode }) {
     setNotes(readNotes())
     setSleepState(readSleep())
     setProfileState(readProfile())
+    setProjectsState(readProjects())
     return () => {
       cancelled = true
       unsub()
@@ -298,6 +331,32 @@ export function HabitsProvider({ children }: { children: React.ReactNode }) {
     [enabled, uid],
   )
 
+  const writeAllProjects = useCallback(
+    (next: Project[]) => {
+      projectsRef.current = next
+      setProjectsState(next)
+      writeProjects(next)
+      if (enabled && uid) {
+        setDoc(doc(firebaseDb(), "users", uid), { projects: next }, { mergeFields: ["projects"] }).catch(console.error)
+      }
+    },
+    [enabled, uid],
+  )
+
+  const saveProject = useCallback(
+    (project: Project) => {
+      const prev = projectsRef.current
+      const exists = prev.some((p) => p.id === project.id)
+      writeAllProjects(exists ? prev.map((p) => (p.id === project.id ? project : p)) : [...prev, project])
+    },
+    [writeAllProjects],
+  )
+
+  const deleteProject = useCallback(
+    (id: string) => writeAllProjects(projectsRef.current.filter((p) => p.id !== id)),
+    [writeAllProjects],
+  )
+
   const profileRef = useRef<Profile>({})
   useEffect(() => {
     profileRef.current = profile
@@ -364,6 +423,9 @@ export function HabitsProvider({ children }: { children: React.ReactNode }) {
       moveHabit,
       profile,
       setProfile,
+      projects,
+      saveProject,
+      deleteProject,
     }),
     [
       habits,
@@ -379,6 +441,9 @@ export function HabitsProvider({ children }: { children: React.ReactNode }) {
       moveHabit,
       profile,
       setProfile,
+      projects,
+      saveProject,
+      deleteProject,
     ],
   )
 
