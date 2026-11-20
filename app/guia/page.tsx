@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation"
 import {
   ArrowLeft,
   BarChart3,
+  BedDouble,
   Bell,
   BookOpen,
   ChevronDown,
@@ -131,6 +132,35 @@ const SECTIONS: Section[] = [
           Suas notas ficam reunidas no <b>Diário</b>, no fim da tela Análise.
         </li>
       </ul>
+    ),
+  },
+  {
+    id: "sono",
+    icon: BedDouble,
+    title: "Sono",
+    summary: "Registrar horas dormidas e ver o gráfico",
+    body: (
+      <>
+        <p>
+          Dormir bem sustenta os outros hábitos. No card <b>Sono desta noite</b>, na tela Hoje, você registra quanto
+          dormiu de ontem para hoje.
+        </p>
+        <ul>
+          <li>
+            <b>Manual:</b> toque no card, ajuste com os botões <b>−</b> e <b>+</b> (15 em 15 minutos), arraste a barra
+            ou escolha 5h a 9h. Toque em Salvar.
+          </li>
+          <li>Errou? Toque de novo e ajuste, ou apague o registro do dia.</li>
+          <li>
+            <b>Em breve, automático no iPhone:</b> o sono registrado pelo Apple Watch ou pelo iPhone vai entrar no MRD
+            sozinho, pelo app <b>Atalhos</b> da Apple.
+          </li>
+          <li>
+            Na <b>Análise</b>, o gráfico Sono mostra uma barra por noite, a sua média (linha tracejada), a melhor noite
+            e quantas noites tiveram 7 horas ou mais.
+          </li>
+        </ul>
+      </>
     ),
   },
   {

@@ -60,6 +60,7 @@
   --ring: rgba(255, 255, 255, 0.15);
   --chart-1: #fafafa;
   --chart-2: #22c55e;
+  --chart-sleep: #818cf8;
   color-scheme: dark;
 }
 
@@ -144,6 +145,13 @@
   }
 }
 
+
+:root {
+  --chart-sleep: #a5b4fc;
+}
+.dark {
+  --chart-sleep: #818cf8;
+}
 
 /* ---------- app feel ---------- */
 html {

@@ -8,6 +8,7 @@ import { useAuth } from "@/hooks/use-auth"
 
 const STORAGE_KEY = "minimo-ridiculo-habits"
 const NOTES_KEY = "mrd-notes"
+const SLEEP_KEY = "mrd-sleep"
 const PROFILE_KEY = "mrd-profile"
 
 export interface Profile {
@@ -28,6 +29,9 @@ interface HabitsContextValue {
   deleteHabit: (id: string) => void
   /** nota livre por dia (chave YYYY-MM-DD) */
   notes: Record<string, string>
+  /** horas dormidas na noite que termina no dia (chave YYYY-MM-DD) */
+  sleep: Record<string, number>
+  setSleep: (key: string, hours: number | null) => void
   setNote: (key: string, text: string) => void
   /** move o hábito para a posição do outro (arrastar e soltar) */
   moveHabit: (fromId: string, toId: string) => void
@@ -53,6 +57,21 @@ function readNotes(): Record<string, string> {
   } catch {
     return {}
   }
+}
+
+function readSleep(): Record<string, number> {
+  try {
+    const parsed = JSON.parse(localStorage.getItem(SLEEP_KEY) ?? "{}")
+    return parsed && typeof parsed === "object" && !Array.isArray(parsed) ? parsed : {}
+  } catch {
+    return {}
+  }
+}
+
+function writeSleep(sleep: Record<string, number>) {
+  try {
+    localStorage.setItem(SLEEP_KEY, JSON.stringify(sleep))
+  } catch {}
 }
 
 function writeNotes(notes: Record<string, string>) {
@@ -96,6 +115,8 @@ export function HabitsProvider({ children }: { children: React.ReactNode }) {
   const habitsRef = useRef<Habit[]>([])
   const [notes, setNotes] = useState<Record<string, string>>({})
   const notesRef = useRef<Record<string, string>>({})
+  const [sleep, setSleepState] = useState<Record<string, number>>({})
+  const sleepRef = useRef<Record<string, number>>({})
   const [profile, setProfileState] = useState<Profile>({})
   const uid = user?.uid
 
@@ -109,6 +130,12 @@ export function HabitsProvider({ children }: { children: React.ReactNode }) {
     const applyProfile = (next: Profile) => {
       setProfileState(next)
       writeProfile(next)
+    }
+
+    const applySleep = (next: Record<string, number>) => {
+      sleepRef.current = next
+      setSleepState(next)
+      writeSleep(next)
     }
 
     const applyNotes = (next: Record<string, string>) => {
@@ -127,11 +154,13 @@ export function HabitsProvider({ children }: { children: React.ReactNode }) {
     if (!enabled || !uid) {
       apply(enabled ? [] : readLocal())
       applyNotes(enabled ? {} : readNotes())
+      applySleep(enabled ? {} : readSleep())
       applyProfile(enabled ? {} : readProfile())
       if (enabled) setReady(true)
       const onStorage = (e: StorageEvent) => {
         if (e.key === STORAGE_KEY) apply(readLocal())
         if (e.key === NOTES_KEY) applyNotes(readNotes())
+        if (e.key === SLEEP_KEY) applySleep(readSleep())
         if (e.key === PROFILE_KEY) applyProfile(readProfile())
       }
       window.addEventListener("storage", onStorage)
@@ -154,6 +183,7 @@ export function HabitsProvider({ children }: { children: React.ReactNode }) {
       unsub = onSnapshot(ref, (s) => {
         apply((s.data()?.habits as Habit[]) ?? [])
         applyNotes((s.data()?.notes as Record<string, string>) ?? {})
+        applySleep((s.data()?.sleep as Record<string, number>) ?? {})
         applyProfile((s.data()?.profile as Profile) ?? {})
       })
     })()
@@ -161,6 +191,7 @@ export function HabitsProvider({ children }: { children: React.ReactNode }) {
     // abre instantâneo com o cache enquanto a nuvem responde
     setHabits(readLocal())
     setNotes(readNotes())
+    setSleepState(readSleep())
     setProfileState(readProfile())
     return () => {
       cancelled = true
@@ -247,9 +278,37 @@ export function HabitsProvider({ children }: { children: React.ReactNode }) {
     [enabled, uid],
   )
 
+  const setSleep = useCallback(
+    (key: string, hours: number | null) => {
+      const next = { ...sleepRef.current }
+      if (hours == null || !Number.isFinite(hours) || hours <= 0) delete next[key]
+      else next[key] = Math.round(Math.min(hours, 16) * 4) / 4 // passos de 15 min
+      sleepRef.current = next
+      setSleepState(next)
+      writeSleep(next)
+      if (enabled && uid) {
+        setDoc(doc(firebaseDb(), "users", uid), { sleep: next }, { mergeFields: ["sleep"] }).catch(console.error)
+      }
+    },
+    [enabled, uid],
+  )
+
   const value = useMemo(
-    () => ({ habits, ready, addHabit, updateHabit, deleteHabit, notes, setNote, moveHabit, profile, setProfile }),
-    [habits, ready, addHabit, updateHabit, deleteHabit, notes, setNote, moveHabit, profile, setProfile],
+    () => ({
+      habits,
+      ready,
+      addHabit,
+      updateHabit,
+      deleteHabit,
+      notes,
+      setNote,
+      sleep,
+      setSleep,
+      moveHabit,
+      profile,
+      setProfile,
+    }),
+    [habits, ready, addHabit, updateHabit, deleteHabit, notes, setNote, sleep, setSleep, moveHabit, profile, setProfile],
   )
 
   return <HabitsContext.Provider value={value}>{children}</HabitsContext.Provider>
