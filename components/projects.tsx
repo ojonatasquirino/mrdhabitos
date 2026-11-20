@@ -13,6 +13,7 @@ import {
   Hammer,
   Library,
   Minus,
+  Pencil,
   Plus,
   Sparkles,
   Trash2,
@@ -322,9 +323,18 @@ export function ProjectDetailPage({ project: p }: { project: Project }) {
           </IconButton>
         }
         right={
-          <IconButton aria-label="Excluir projeto" onClick={() => setConfirmDelete(true)} className="text-muted-foreground">
-            <Trash2 className="h-5 w-5" />
-          </IconButton>
+          <span className="flex items-center">
+            <IconButton
+              aria-label="Editar projeto"
+              onClick={() => router.push(`/projetos/${p.id}/editar`)}
+              className="text-muted-foreground"
+            >
+              <Pencil className="h-5 w-5" />
+            </IconButton>
+            <IconButton aria-label="Excluir projeto" onClick={() => setConfirmDelete(true)} className="-mr-2 text-muted-foreground">
+              <Trash2 className="h-5 w-5" />
+            </IconButton>
+          </span>
         }
       />
 
@@ -544,21 +554,52 @@ function StepButton({ label, onClick, children }: { label: string; onClick: () =
 }
 
 /* ------------------------------------------------------------------ */
-/* Novo projeto                                                        */
+/* Novo projeto / editar projeto                                       */
 /* ------------------------------------------------------------------ */
 
+interface StepDraft {
+  id?: string
+  title: string
+  total: string
+  current: string
+  done?: boolean
+}
+
 export function NewProjectPage() {
+  return <ProjectForm />
+}
+
+export function EditProjectPage({ project }: { project: Project }) {
+  return <ProjectForm editing={project} />
+}
+
+function ProjectForm({ editing }: { editing?: Project }) {
   const router = useRouter()
   const { habits, addHabit, saveProject, projects } = useHabits()
-  const [kind, setKind] = useState<ProjectKind>("leitura")
-  const [name, setName] = useState("")
-  const [goal, setGoal] = useState("")
-  const [deadline, setDeadline] = useState("")
-  const [steps, setSteps] = useState<{ title: string; total: string }[]>([{ title: "", total: "" }])
-  const [habitChoice, setHabitChoice] = useState<string>("novo")
+  const [kind, setKind] = useState<ProjectKind>(editing?.kind ?? "leitura")
+  const [name, setName] = useState(editing?.name ?? "")
+  const [goal, setGoal] = useState(editing?.goal ?? "")
+  const [deadline, setDeadline] = useState(editing?.deadline ?? "")
+  const [steps, setSteps] = useState<StepDraft[]>(
+    editing?.steps.length
+      ? editing.steps.map((s) => ({
+          id: s.id,
+          title: s.title,
+          total: s.total ? String(s.total) : "",
+          current: s.current ? String(s.current) : "",
+          done: s.done,
+        }))
+      : [{ title: "", total: "", current: "" }],
+  )
+  const [habitChoice, setHabitChoice] = useState<string>(
+    editing ? (editing.habitId && habits.some((h) => h.id === editing.habitId) ? editing.habitId : "nenhum") : "novo",
+  )
   const [newHabit, setNewHabit] = useState("")
-  const [perCheck, setPerCheck] = useState("5")
-  const active = projects.filter((p) => p.status === "ativo").length
+  const [perCheck, setPerCheck] = useState(String(editing?.perCheck ?? 5))
+  const [reopen, setReopen] = useState(false)
+  const active = projects.filter((p) => p.status === "ativo" && p.id !== editing?.id).length
+  const willBeActive = !editing || editing.status === "ativo" || reopen
+  const blocked = willBeActive && active >= MAX_ACTIVE
 
   const cleanSteps = steps.filter((s) => s.title.trim() && (kind !== "leitura" || Number(s.total) > 0))
   const valid = name.trim() && cleanSteps.length > 0 && (habitChoice !== "novo" || newHabit.trim())
@@ -567,12 +608,14 @@ export function NewProjectPage() {
     [kind, perCheck],
   )
 
-  const create = () => {
-    if (!valid) return
+  const save = () => {
+    if (!valid || blocked) return
     let habitId: string | undefined = habitChoice === "nenhum" ? undefined : habitChoice
     if (habitChoice === "novo") habitId = addHabit(newHabit.trim()).id
-    const id = crypto.randomUUID()
+    const id = editing?.id ?? crypto.randomUUID()
+    const status = editing ? (reopen ? "ativo" : editing.status) : "ativo"
     saveProject({
+      ...(editing ?? {}),
       id,
       name: name.trim(),
       kind,
@@ -580,13 +623,19 @@ export function NewProjectPage() {
       deadline: deadline || undefined,
       habitId,
       perCheck: kind === "leitura" ? Math.max(1, Number(perCheck) || 5) : undefined,
-      steps: cleanSteps.map((s) => ({
-        id: crypto.randomUUID(),
-        title: s.title.trim(),
-        ...(kind === "leitura" ? { total: Number(s.total), current: 0 } : { done: false }),
-      })),
-      status: "ativo",
-      createdAt: toDateKey(new Date()),
+      steps: cleanSteps.map((s) => {
+        const total = Number(s.total)
+        return {
+          id: s.id ?? crypto.randomUUID(),
+          title: s.title.trim(),
+          ...(kind === "leitura"
+            ? { total, current: Math.min(total, Math.max(0, Number(s.current) || 0)) }
+            : { done: !!s.done }),
+        }
+      }),
+      status,
+      createdAt: editing?.createdAt ?? toDateKey(new Date()),
+      doneAt: status === "ativo" ? undefined : editing?.doneAt,
     })
     router.replace(`/projetos/${id}`)
   }
@@ -594,40 +643,66 @@ export function NewProjectPage() {
   const label = "block text-[11px] font-medium uppercase tracking-wider text-muted-foreground"
   const input =
     "mt-2 w-full rounded-xl bg-muted px-3 py-3 text-base outline-none placeholder:text-muted-foreground/60 focus:ring-2 focus:ring-foreground/10"
+  const back = () => router.push(editing ? `/projetos/${editing.id}` : "/projetos")
+  const setStep = (i: number, patch: Partial<StepDraft>) => setSteps(steps.map((x, j) => (j === i ? { ...x, ...patch } : x)))
+  const moveStep = (i: number, d: number) => {
+    const j = i + d
+    if (j < 0 || j >= steps.length) return
+    const next = [...steps]
+    ;[next[i], next[j]] = [next[j], next[i]]
+    setSteps(next)
+  }
 
   return (
     <AppShell nav={false} size="narrow">
       <PageHeader
-        subtitle="Novo projeto"
-        title="Onde você quer chegar?"
+        subtitle={editing ? "Editar projeto" : "Novo projeto"}
+        title={editing ? editing.name : "Onde você quer chegar?"}
         left={
-          <IconButton aria-label="Voltar" onClick={() => router.push("/projetos")} className="-ml-2">
+          <IconButton aria-label="Voltar" onClick={back} className="-ml-2">
             <ArrowLeft className="h-5 w-5" />
           </IconButton>
         }
       />
 
-      {active >= MAX_ACTIVE && (
+      {blocked && (
         <p className="mb-4 rounded-2xl bg-amber-500/10 p-4 text-sm text-amber-700 dark:text-amber-400">
-          Você já tem {MAX_ACTIVE} projetos ativos. Conclua um antes de começar outro.
+          Você já tem {MAX_ACTIVE} projetos ativos. Conclua um antes de {editing ? "reabrir este" : "começar outro"}.
         </p>
+      )}
+
+      {editing?.status === "concluido" && (
+        <label className="mb-5 flex items-center justify-between gap-3 rounded-2xl border border-border p-4">
+          <span>
+            <span className="block text-sm font-semibold">Reabrir projeto</span>
+            <span className="block text-xs text-muted-foreground">Sai da Estante e volta para os ativos.</span>
+          </span>
+          <input
+            type="checkbox"
+            checked={reopen}
+            onChange={(e) => setReopen(e.target.checked)}
+            className="h-5 w-5 accent-foreground"
+          />
+        </label>
       )}
 
       <span className={label}>Tipo</span>
       <div className="mt-2 grid grid-cols-3 gap-2">
         {(Object.keys(KIND_META) as ProjectKind[]).map((k) => {
           const Icon = KIND_ICON[k]
+          const locked = !!editing && k !== kind
           return (
             <button
               key={k}
               type="button"
+              disabled={locked}
               onClick={() => {
                 setKind(k)
                 setHabitChoice("novo")
                 setNewHabit("")
               }}
               className={cn(
-                "pressable flex flex-col items-center gap-2 rounded-2xl border p-4 text-sm font-medium",
+                "pressable flex flex-col items-center gap-2 rounded-2xl border p-4 text-sm font-medium disabled:opacity-35",
                 kind === k ? "border-foreground bg-foreground text-background" : "border-border",
               )}
             >
@@ -637,6 +712,7 @@ export function NewProjectPage() {
           )
         })}
       </div>
+      {editing && <p className="mt-1.5 text-[11px] text-muted-foreground">O tipo não muda depois de criado.</p>}
 
       <label className={cn(label, "mt-6")}>
         Nome
@@ -662,12 +738,23 @@ export function NewProjectPage() {
 
       <label className={cn(label, "mt-5")}>
         Prazo <span className="normal-case">(opcional)</span>
-        <input
-          type="date"
-          value={deadline}
-          onChange={(e) => setDeadline(e.target.value)}
-          className={cn(input, "normal-case tracking-normal text-foreground")}
-        />
+        <span className="flex items-center gap-2">
+          <input
+            type="date"
+            value={deadline}
+            onChange={(e) => setDeadline(e.target.value)}
+            className={cn(input, "normal-case tracking-normal text-foreground")}
+          />
+          {deadline && (
+            <button
+              type="button"
+              onClick={() => setDeadline("")}
+              className="mt-2 shrink-0 rounded-xl px-3 py-3 text-sm normal-case tracking-normal text-muted-foreground hover:bg-muted"
+            >
+              Remover
+            </button>
+          )}
+        </span>
       </label>
 
       <span className={cn(label, "mt-6")}>
@@ -675,49 +762,100 @@ export function NewProjectPage() {
       </span>
       <ul className="mt-2 space-y-2">
         {steps.map((s, i) => (
-          <li key={i} className="flex gap-2">
-            <input
-              value={s.title}
-              onChange={(e) => setSteps(steps.map((x, j) => (j === i ? { ...x, title: e.target.value } : x)))}
-              placeholder={kind === "leitura" ? "Ex: 12 Regras para a Vida" : `${KIND_META[kind].stepLabel} ${i + 1}`}
-              className="min-w-0 flex-1 rounded-xl bg-muted px-3 py-3 text-base outline-none"
-            />
-            {kind === "leitura" && (
+          <li key={s.id ?? `n${i}`} className="rounded-2xl bg-muted/50 p-2">
+            <div className="flex gap-2">
               <input
-                inputMode="numeric"
-                value={s.total}
-                onChange={(e) =>
-                  setSteps(steps.map((x, j) => (j === i ? { ...x, total: e.target.value.replace(/\D/g, "") } : x)))
-                }
-                placeholder="págs"
-                className="w-20 rounded-xl bg-muted px-3 py-3 text-base outline-none"
+                value={s.title}
+                onChange={(e) => setStep(i, { title: e.target.value })}
+                placeholder={kind === "leitura" ? "Ex: 12 Regras para a Vida" : `${KIND_META[kind].stepLabel} ${i + 1}`}
+                className="min-w-0 flex-1 rounded-xl bg-muted px-3 py-3 text-base outline-none"
               />
-            )}
-            {steps.length > 1 && (
-              <button
-                type="button"
-                aria-label="Remover"
-                onClick={() => setSteps(steps.filter((_, j) => j !== i))}
-                className="flex w-10 items-center justify-center text-muted-foreground"
-              >
-                <X className="h-4 w-4" />
-              </button>
-            )}
+              {steps.length > 1 && (
+                <button
+                  type="button"
+                  aria-label="Remover"
+                  onClick={() => setSteps(steps.filter((_, j) => j !== i))}
+                  className="flex w-9 items-center justify-center text-muted-foreground"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              )}
+            </div>
+            <div className="mt-2 flex items-center gap-2 px-1 text-xs text-muted-foreground">
+              {kind === "leitura" ? (
+                <>
+                  <label className="flex items-center gap-1.5">
+                    Páginas
+                    <input
+                      inputMode="numeric"
+                      value={s.total}
+                      onChange={(e) => setStep(i, { total: e.target.value.replace(/\D/g, "") })}
+                      placeholder="448"
+                      className="w-16 rounded-lg bg-muted px-2 py-1.5 text-sm text-foreground outline-none"
+                    />
+                  </label>
+                  {editing && (
+                    <label className="flex items-center gap-1.5">
+                      Página atual
+                      <input
+                        inputMode="numeric"
+                        value={s.current}
+                        onChange={(e) => setStep(i, { current: e.target.value.replace(/\D/g, "") })}
+                        placeholder="0"
+                        className="w-16 rounded-lg bg-muted px-2 py-1.5 text-sm text-foreground outline-none"
+                      />
+                    </label>
+                  )}
+                </>
+              ) : (
+                editing && (
+                  <label className="flex items-center gap-1.5">
+                    <input
+                      type="checkbox"
+                      checked={!!s.done}
+                      onChange={(e) => setStep(i, { done: e.target.checked })}
+                      className="h-4 w-4 accent-foreground"
+                    />
+                    Concluída
+                  </label>
+                )
+              )}
+              {steps.length > 1 && (
+                <span className="ml-auto flex gap-1">
+                  <button
+                    type="button"
+                    aria-label="Subir"
+                    disabled={i === 0}
+                    onClick={() => moveStep(i, -1)}
+                    className="rounded-lg px-2 py-1 disabled:opacity-30"
+                  >
+                    ↑
+                  </button>
+                  <button
+                    type="button"
+                    aria-label="Descer"
+                    disabled={i === steps.length - 1}
+                    onClick={() => moveStep(i, 1)}
+                    className="rounded-lg px-2 py-1 disabled:opacity-30"
+                  >
+                    ↓
+                  </button>
+                </span>
+              )}
+            </div>
           </li>
         ))}
       </ul>
       <button
         type="button"
-        onClick={() => setSteps([...steps, { title: "", total: "" }])}
+        onClick={() => setSteps([...steps, { title: "", total: "", current: "" }])}
         className="mt-2 flex items-center gap-1 text-sm font-medium text-muted-foreground"
       >
         <Plus className="h-4 w-4" /> Adicionar {KIND_META[kind].stepLabel.toLowerCase()}
       </button>
 
       <span className={cn(label, "mt-7")}>Hábito que alimenta o projeto</span>
-      <p className="mt-1 text-xs text-muted-foreground">
-        O mínimo diário. Cada check dele avança o projeto.
-      </p>
+      <p className="mt-1 text-xs text-muted-foreground">O mínimo diário. Cada check dele avança o projeto.</p>
       <select
         value={habitChoice}
         onChange={(e) => setHabitChoice(e.target.value)}
@@ -755,11 +893,11 @@ export function NewProjectPage() {
 
       <button
         type="button"
-        disabled={!valid || active >= MAX_ACTIVE}
-        onClick={create}
+        disabled={!valid || blocked}
+        onClick={save}
         className="pressable mb-6 mt-8 h-14 w-full rounded-2xl bg-foreground text-base font-semibold text-background disabled:bg-muted disabled:text-muted-foreground"
       >
-        Criar projeto
+        {editing ? "Salvar alterações" : "Criar projeto"}
       </button>
     </AppShell>
   )

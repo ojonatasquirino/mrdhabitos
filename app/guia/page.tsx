@@ -226,6 +226,11 @@ const SECTIONS: Section[] = [
             no seu Diário.
           </li>
           <li>
+            Para mudar algo, abra o projeto e toque no <b>lápis</b>: dá para renomear, trocar ou tirar o prazo, adicionar,
+            remover e reordenar etapas, corrigir páginas e trocar o hábito ligado. Projetos da Estante podem ser
+            reabertos por ali.
+          </li>
+          <li>
             No máximo <b>3 projetos ativos</b> ao mesmo tempo. Poucos e constantes vencem muitos pela metade.
           </li>
         </ul>
