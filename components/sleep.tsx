@@ -1,11 +1,20 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { BedDouble, Minus, Plus } from "lucide-react"
+import { BedDouble, Minus, Plus, Target } from "lucide-react"
+import { useHabits } from "@/hooks/use-habits"
 import { Button } from "@/components/ui/button"
 import { BottomSheet } from "@/components/ui-kit"
 import { addDays, toDateKey } from "@/lib/dates"
 import { cn } from "@/lib/utils"
+
+export const DEFAULT_SLEEP_GOAL = 7
+
+/** "+0h30" / "−0h45" em relação à meta */
+export function formatDiff(h: number): string {
+  const sign = h >= 0 ? "+" : "−"
+  return sign + formatHours(Math.abs(h)).replace(/^(\d+)h$/, "$1h00")
+}
 
 export function formatHours(h: number): string {
   const total = Math.round(h * 60)
@@ -23,6 +32,8 @@ export function SleepCard({
   onSave: (key: string, hours: number | null) => void
 }) {
   const [open, setOpen] = useState(false)
+  const { profile, setProfile } = useHabits()
+  const goal = profile.sleepGoal ?? DEFAULT_SLEEP_GOAL
   const today = new Date()
   const todayKey = toDateKey(today)
   const value = sleep[todayKey]
@@ -44,16 +55,31 @@ export function SleepCard({
             Sono desta noite
           </span>
           {value ? (
-            <span className="block text-xl font-semibold tabular-nums">{formatHours(value)}</span>
+            <span className="flex items-baseline gap-2">
+              <span className="text-xl font-semibold tabular-nums">{formatHours(value)}</span>
+              <span
+                className={cn(
+                  "text-xs font-semibold tabular-nums",
+                  value >= goal ? "text-green-600 dark:text-green-500" : "text-amber-600 dark:text-amber-400",
+                )}
+              >
+                {value >= goal ? "na meta ✓" : `${formatDiff(value - goal)} da meta`}
+              </span>
+            </span>
           ) : (
             <span className="block text-sm text-muted-foreground">Quanto você dormiu? Toque para registrar.</span>
           )}
         </span>
-        <span className="flex h-9 items-end gap-[3px]" aria-hidden="true">
+        <span className="relative flex h-9 items-end gap-[3px]" aria-hidden="true">
+          {/* linha da meta */}
+          <span
+            className="absolute inset-x-[-2px] border-t border-dashed border-foreground/30"
+            style={{ bottom: `${(goal / max) * 100}%` }}
+          />
           {week.map((h, i) => (
             <span
               key={i}
-              className={cn("w-1.5 rounded-full", h ? "bg-indigo-400" : "bg-muted")}
+              className={cn("w-1.5 rounded-full", !h ? "bg-muted" : h >= goal ? "bg-indigo-500" : "bg-amber-400")}
               style={{ height: `${Math.max(12, (h / max) * 100)}%` }}
             />
           ))}
@@ -63,6 +89,8 @@ export function SleepCard({
       <SleepSheet
         open={open}
         initial={value}
+        goal={goal}
+        onGoal={(g) => setProfile({ ...profile, sleepGoal: g })}
         onClose={() => setOpen(false)}
         onSave={(h) => {
           onSave(todayKey, h)
@@ -76,11 +104,15 @@ export function SleepCard({
 function SleepSheet({
   open,
   initial,
+  goal,
+  onGoal,
   onClose,
   onSave,
 }: {
   open: boolean
   initial?: number
+  goal: number
+  onGoal: (hours: number) => void
   onClose: () => void
   onSave: (hours: number | null) => void
 }) {
@@ -104,7 +136,19 @@ function SleepSheet({
         >
           <Minus className="h-5 w-5" />
         </button>
-        <span className="text-5xl font-semibold tabular-nums tracking-tight">{formatHours(h)}</span>
+        <span className="flex flex-col items-center">
+          <span className="text-5xl font-semibold tabular-nums tracking-tight">{formatHours(h)}</span>
+          <span
+            className={cn(
+              "mt-1 rounded-full px-2.5 py-0.5 text-xs font-semibold tabular-nums",
+              h >= goal
+                ? "bg-green-500/10 text-green-700 dark:text-green-400"
+                : "bg-amber-500/10 text-amber-700 dark:text-amber-400",
+            )}
+          >
+            {h >= goal ? `Na meta${h > goal ? ` · ${formatDiff(h - goal)}` : ""}` : `${formatDiff(h - goal)} da meta`}
+          </span>
+        </span>
         <button
           type="button"
           aria-label="Mais 15 minutos"
@@ -153,7 +197,32 @@ function SleepSheet({
         )}
       </div>
 
-      <div className="h-2" />
+      <div className="mb-2 mt-5 flex items-center gap-3 rounded-2xl border border-border p-3 pl-4">
+        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-indigo-500/10 text-indigo-500">
+          <Target className="h-4 w-4" />
+        </span>
+        <span className="min-w-0 flex-1">
+          <span className="block text-sm font-semibold">Meta por noite</span>
+          <span className="block text-[11px] text-muted-foreground">Adultos: 7 a 9 horas</span>
+        </span>
+        <button
+          type="button"
+          aria-label="Diminuir meta"
+          onClick={() => onGoal(Math.max(4, goal - 0.5))}
+          className="pressable flex h-8 w-8 items-center justify-center rounded-full bg-muted"
+        >
+          <Minus className="h-4 w-4" />
+        </button>
+        <span className="w-12 text-center text-base font-semibold tabular-nums">{formatHours(goal)}</span>
+        <button
+          type="button"
+          aria-label="Aumentar meta"
+          onClick={() => onGoal(Math.min(12, goal + 0.5))}
+          className="pressable flex h-8 w-8 items-center justify-center rounded-full bg-muted"
+        >
+          <Plus className="h-4 w-4" />
+        </button>
+      </div>
     </BottomSheet>
   )
 }

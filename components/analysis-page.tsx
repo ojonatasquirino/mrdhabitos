@@ -1,8 +1,8 @@
 "use client"
 
 import { useMemo, useState } from "react"
-import { Area, AreaChart, Bar, BarChart, CartesianGrid, Cell, ComposedChart, XAxis, YAxis } from "recharts"
-import { formatHours } from "@/components/sleep"
+import { Area, AreaChart, Bar, BarChart, CartesianGrid, Cell, ComposedChart, ReferenceLine, XAxis, YAxis } from "recharts"
+import { DEFAULT_SLEEP_GOAL, formatDiff, formatHours } from "@/components/sleep"
 import { AppShell, PageHeader } from "@/components/app-shell"
 import { ChartContainer, ChartTooltip, ChartTooltipContent, type ChartConfig } from "@/components/ui/chart"
 import { toDateKey } from "@/lib/dates"
@@ -14,6 +14,7 @@ interface AnalysisPageProps {
   habits: Habit[]
   notes?: Record<string, string>
   sleep?: Record<string, number>
+  sleepGoal?: number
   onBack?: () => void
 }
 
@@ -28,7 +29,7 @@ const RANGES = [
 const trendConfig = { rate: { label: "Concluído", color: "var(--chart-2)" } } satisfies ChartConfig
 const weekdayConfig = { rate: { label: "Média", color: "var(--chart-1)" } } satisfies ChartConfig
 
-export function AnalysisPage({ habits, notes = {}, sleep = {} }: AnalysisPageProps) {
+export function AnalysisPage({ habits, notes = {}, sleep = {}, sleepGoal }: AnalysisPageProps) {
   const [range, setRange] = useState<number>(30)
   const days = useMemo(() => lastDays(range), [range])
 
@@ -175,7 +176,7 @@ export function AnalysisPage({ habits, notes = {}, sleep = {} }: AnalysisPagePro
             </ul>
           </ChartCard>
 
-          <SleepChart sleep={sleep} days={days} range={range} />
+          <SleepChart sleep={sleep} days={days} range={range} habits={habits} goal={sleepGoal ?? DEFAULT_SLEEP_GOAL} />
 
           <Journal notes={notes} />
         </div>
@@ -309,7 +310,19 @@ const sleepConfig = {
 } satisfies ChartConfig
 
 /** Barras de horas dormidas por noite, no período selecionado (estilo "sleep tracker"). */
-function SleepChart({ sleep, days, range }: { sleep: Record<string, number>; days: Date[]; range: number }) {
+function SleepChart({
+  sleep,
+  days,
+  range,
+  habits,
+  goal,
+}: {
+  sleep: Record<string, number>
+  days: Date[]
+  range: number
+  habits: Habit[]
+  goal: number
+}) {
   const data = days.map((d) => {
     // tendência: média das noites registradas nos últimos 7 dias
     const win = lastDays(7, d)
@@ -324,8 +337,22 @@ function SleepChart({ sleep, days, range }: { sleep: Record<string, number>; day
   })
   const logged = data.filter((d) => d.hours != null).map((d) => d.hours as number)
   const avg = logged.length ? logged.reduce((a, b) => a + b, 0) / logged.length : 0
-  const best = logged.length ? Math.max(...logged) : 0
-  const good = logged.filter((h) => h >= 7).length
+  const good = logged.filter((h) => h >= goal).length
+  const balance = avg - goal
+
+  // indicador de performance: hábitos cumpridos no dia seguinte a uma noite na meta vs abaixo dela
+  const perf = (() => {
+    const on: number[] = []
+    const off: number[] = []
+    days.forEach((d) => {
+      const h = sleep[toDateKey(d)]
+      const r = dayRate(habits, toDateKey(d))
+      if (h == null || r == null) return
+      ;(h >= goal ? on : off).push(r)
+    })
+    const mean = (a: number[]) => (a.length ? Math.round(a.reduce((x, y) => x + y, 0) / a.length) : null)
+    return { on: mean(on), off: mean(off), onN: on.length, offN: off.length }
+  })()
 
   return (
     <ChartCard className="lg:col-span-2" title="Sono" description="Horas dormidas por noite">
@@ -336,9 +363,13 @@ function SleepChart({ sleep, days, range }: { sleep: Record<string, number>; day
       ) : (
         <>
           <div className="mb-4 grid grid-cols-3 gap-2 lg:gap-5">
-            <MiniStat label="Média" value={formatHours(avg)} />
-            <MiniStat label="Melhor noite" value={formatHours(best)} />
-            <MiniStat label="7h ou mais" value={`${good}/${logged.length}`} />
+            <MiniStat label="Média por noite" value={formatHours(avg)} />
+            <MiniStat label={`Na meta (${formatHours(goal)})`} value={`${good}/${logged.length}`} />
+            <MiniStat
+              label="Saldo médio"
+              value={formatDiff(balance)}
+              tone={balance >= 0 ? "good" : "warn"}
+            />
           </div>
           <ChartContainer config={sleepConfig} className="aspect-auto h-52 w-full lg:h-72">
             <ComposedChart data={data} margin={{ left: 0, right: 4, top: 8 }} barCategoryGap={range > 30 ? 1 : "22%"}>
@@ -368,7 +399,22 @@ function SleepChart({ sleep, days, range }: { sleep: Record<string, number>; day
                 cursor={false}
                 content={<ChartTooltipContent labelKey="long" formatter={(v) => formatHours(Number(v))} />}
               />
-              <Bar dataKey="hours" fill="var(--color-hours)" fillOpacity={0.35} radius={[6, 6, 2, 2]} animationDuration={600} />
+              <Bar dataKey="hours" radius={[6, 6, 2, 2]} animationDuration={600}>
+                {data.map((d) => (
+                  <Cell
+                    key={d.long}
+                    fill={d.hours != null && d.hours < goal ? "#f59e0b" : "var(--color-hours)"}
+                    fillOpacity={d.hours != null && d.hours < goal ? 0.55 : 0.65}
+                  />
+                ))}
+              </Bar>
+              <ReferenceLine
+                y={goal}
+                stroke="currentColor"
+                strokeOpacity={0.55}
+                strokeDasharray="5 5"
+                label={{ value: `meta ${formatHours(goal)}`, position: "insideTopRight", fontSize: 11, fill: "currentColor" }}
+              />
               <Area
                 dataKey="trend"
                 type="monotone"
@@ -381,27 +427,81 @@ function SleepChart({ sleep, days, range }: { sleep: Record<string, number>; day
               />
             </ComposedChart>
           </ChartContainer>
-          <div className="mt-3 flex items-center gap-4 text-[11px] text-muted-foreground">
+          <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1.5 text-[11px] text-muted-foreground">
             <span className="flex items-center gap-1.5">
-              <span className="h-2.5 w-2.5 rounded-[3px] bg-[var(--chart-sleep)] opacity-40" />
-              Noite
+              <span className="h-2.5 w-2.5 rounded-[3px] bg-[var(--chart-sleep)] opacity-60" />
+              Na meta
+            </span>
+            <span className="flex items-center gap-1.5">
+              <span className="h-2.5 w-2.5 rounded-[3px] bg-amber-500 opacity-70" />
+              Abaixo da meta
             </span>
             <span className="flex items-center gap-1.5">
               <span className="h-0.5 w-4 rounded-full bg-[var(--chart-sleep)]" />
-              Tendência (média de 7 dias)
+              Tendência (7 dias)
+            </span>
+            <span className="flex items-center gap-1.5">
+              <span className="w-4 border-t border-dashed border-foreground/60" />
+              Meta
             </span>
           </div>
+
+          {perf.on != null && perf.off != null && (
+            <div className="mt-5 rounded-2xl border border-border p-4">
+              <p className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
+                Sono e performance
+              </p>
+              <div className="mt-3 space-y-2.5">
+                <PerfRow label="Dormindo na meta" value={perf.on} n={perf.onN} tone="good" />
+                <PerfRow label="Abaixo da meta" value={perf.off} n={perf.offN} tone="warn" />
+              </div>
+              <p className="mt-3 text-xs leading-relaxed text-muted-foreground">
+                {perf.on > perf.off
+                  ? `Depois de noites com ${formatHours(goal)} ou mais, você cumpriu ${perf.on}% dos hábitos, contra ${perf.off}% quando dormiu menos.`
+                  : perf.on < perf.off
+                    ? "No período, dormir menos não derrubou seus hábitos. Vale observar por mais tempo."
+                    : "No período, o sono não mudou o quanto você cumpriu os hábitos."}
+              </p>
+            </div>
+          )}
         </>
       )}
     </ChartCard>
   )
 }
 
-function MiniStat({ label, value }: { label: string; value: string }) {
+function PerfRow({ label, value, n, tone }: { label: string; value: number; n: number; tone: "good" | "warn" }) {
+  return (
+    <div>
+      <div className="flex items-center justify-between text-xs">
+        <span className="font-medium">
+          {label} <span className="text-muted-foreground">· {n} {n === 1 ? "noite" : "noites"}</span>
+        </span>
+        <span className="font-semibold tabular-nums">{value}% dos hábitos</span>
+      </div>
+      <div className="mt-1.5 h-2 overflow-hidden rounded-full bg-muted">
+        <div
+          className={cn("h-full rounded-full", tone === "good" ? "bg-[var(--chart-sleep)]" : "bg-amber-500")}
+          style={{ width: `${value}%` }}
+        />
+      </div>
+    </div>
+  )
+}
+
+function MiniStat({ label, value, tone }: { label: string; value: string; tone?: "good" | "warn" }) {
   return (
     <div className="rounded-2xl bg-muted/60 p-3">
       <p className="text-[11px] font-medium text-muted-foreground">{label}</p>
-      <p className="mt-0.5 text-lg font-semibold tabular-nums">{value}</p>
+      <p
+        className={cn(
+          "mt-0.5 text-lg font-semibold tabular-nums",
+          tone === "good" && "text-green-600 dark:text-green-500",
+          tone === "warn" && "text-amber-600 dark:text-amber-400",
+        )}
+      >
+        {value}
+      </p>
     </div>
   )
 }
