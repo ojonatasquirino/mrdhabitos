@@ -27,6 +27,10 @@ export interface Project {
   habitId?: string
   /** leitura: páginas lidas a cada check do hábito */
   perCheck?: number
+  /** leitura: mínimo definido pelo usuário (o ritmo automático nunca desce abaixo disso) */
+  basePerCheck?: number
+  /** leitura: ajusta as páginas por check sozinho para cumprir o prazo (até o dobro do mínimo) */
+  autoPace?: boolean
   steps: ProjectStep[]
   status: "ativo" | "concluido"
   createdAt: string
@@ -158,4 +162,30 @@ export function readingPlan(p: Project, habit?: Habit, today = toDateKey(new Dat
   if (days <= 0) return { left, days: 0, perDay: left, enough: false, overdue: true }
   const perDay = Math.ceil(left / days)
   return { left, days, perDay, enough: (p.perCheck ?? 0) >= perDay, overdue: false }
+}
+
+const PAGES_IN_NAME = /(\d+)(\s*p[áa]g(?:ina)?s?\b)/i
+
+/** Número de páginas escrito no nome do hábito ("Ler 8 páginas" -> 8). */
+export function pagesInName(name: string): number | null {
+  const m = name.match(PAGES_IN_NAME)
+  const n = m ? Number(m[1]) : NaN
+  return Number.isFinite(n) && n > 0 ? n : null
+}
+
+/** Troca o número de páginas no nome do hábito, se houver ("Ler 5 páginas" -> "Ler 10 páginas"). */
+export function withPages(name: string, n: number): string {
+  return PAGES_IN_NAME.test(name) ? name.replace(PAGES_IN_NAME, `${n}$2`) : name
+}
+
+/**
+ * Ritmo automático: páginas por check entre o mínimo do usuário e o dobro dele,
+ * subindo quando o prazo aperta e voltando ao mínimo quando a leitura está adiantada.
+ */
+export function autoPerCheck(p: Project, habit?: Habit, today = toDateKey(new Date())): number | null {
+  if (p.kind !== "leitura" || !p.autoPace || !p.deadline || p.status !== "ativo") return null
+  const base = p.basePerCheck ?? p.perCheck ?? 1
+  const plan = readingPlan(p, habit, today)
+  if (!plan || plan.perDay == null || plan.overdue) return base
+  return Math.min(base * 2, Math.max(base, plan.perDay))
 }

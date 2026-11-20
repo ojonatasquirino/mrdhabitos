@@ -3,7 +3,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react"
 import { collection, deleteDoc, doc, getDoc, getDocs, onSnapshot, setDoc } from "firebase/firestore"
 import type { Habit } from "@/lib/types"
-import { applyReading, type Project } from "@/lib/projects"
+import { applyReading, autoPerCheck, pagesInName, withPages, type Project } from "@/lib/projects"
 import { firebaseDb } from "@/lib/firebase"
 import { useAuth } from "@/hooks/use-auth"
 
@@ -47,8 +47,20 @@ interface HabitsContextValue {
   setProfile: (profile: Profile) => void
   /** projetos com prazo, alimentados por um hábito */
   projects: Project[]
+  /** aviso do ritmo automático da leitura (páginas por check ajustadas ao prazo) */
+  paceNotice: PaceNotice | null
+  dismissPace: () => void
+  undoPace: () => void
   saveProject: (project: Project) => void
   deleteProject: (id: string) => void
+}
+
+export interface PaceNotice {
+  projectId: string
+  name: string
+  from: number
+  to: number
+  stamp: number
 }
 
 const HabitsContext = createContext<HabitsContextValue | null>(null)
@@ -371,6 +383,17 @@ export function HabitsProvider({ children }: { children: React.ReactNode }) {
       const prev = habitsRef.current.find((h) => h.id === habit.id)
       persist((list) => list.map((h) => (h.id === habit.id ? habit : h)))
       if (!prev) return
+      // renomeou "Ler 5 páginas" para "Ler 8 páginas": o projeto passa a somar 8 (e 8 vira o mínimo)
+      const named = prev.name !== habit.name ? pagesInName(habit.name) : null
+      if (named) {
+        const linked = projectsRef.current.some((p) => p.kind === "leitura" && p.habitId === habit.id)
+        if (linked)
+          writeAllProjects(
+            projectsRef.current.map((p) =>
+              p.kind === "leitura" && p.habitId === habit.id ? { ...p, perCheck: named, basePerCheck: named } : p,
+            ),
+          )
+      }
       const keys = new Set([...Object.keys(prev.completions), ...Object.keys(habit.completions)])
       const changed = [...keys].filter((k) => (prev.completions[k] === true) !== (habit.completions[k] === true))
       if (!changed.length) return
@@ -391,6 +414,47 @@ export function HabitsProvider({ children }: { children: React.ReactNode }) {
     (id: string) => writeAllProjects(projectsRef.current.filter((p) => p.id !== id)),
     [writeAllProjects],
   )
+
+  // ritmo automático: ajusta páginas por check (e o nome do hábito) para cumprir o prazo
+  const [paceNotice, setPaceNotice] = useState<PaceNotice | null>(null)
+  useEffect(() => {
+    if (!ready) return
+    let changedProjects = false
+    let notice: PaceNotice | null = null
+    const renames = new Map<string, string>()
+    const next = projectsRef.current.map((p) => {
+      const habit = habitsRef.current.find((h) => h.id === p.habitId)
+      const target = autoPerCheck(p, habit)
+      if (target == null || target === p.perCheck) return p
+      changedProjects = true
+      notice = { projectId: p.id, name: p.name, from: p.perCheck ?? target, to: target, stamp: Date.now() }
+      if (habit) {
+        const renamed = withPages(habit.name, target)
+        if (renamed !== habit.name) renames.set(habit.id, renamed)
+      }
+      return { ...p, perCheck: target, basePerCheck: p.basePerCheck ?? p.perCheck }
+    })
+    if (!changedProjects) return
+    writeAllProjects(next)
+    if (renames.size) persist((list) => list.map((h) => (renames.has(h.id) ? { ...h, name: renames.get(h.id)! } : h)))
+    if (notice) setPaceNotice(notice)
+  }, [ready, projects, habits, writeAllProjects, persist])
+
+  const dismissPace = useCallback(() => setPaceNotice(null), [])
+
+  /** Desfazer: volta ao número anterior e desliga o ajuste automático daquele projeto. */
+  const undoPace = useCallback(() => {
+    const n = paceNotice
+    if (!n) return
+    const p = projectsRef.current.find((x) => x.id === n.projectId)
+    setPaceNotice(null)
+    if (!p) return
+    writeAllProjects(
+      projectsRef.current.map((x) => (x.id === p.id ? { ...x, perCheck: n.from, basePerCheck: n.from, autoPace: false } : x)),
+    )
+    if (p.habitId)
+      persist((list) => list.map((h) => (h.id === p.habitId ? { ...h, name: withPages(h.name, n.from) } : h)))
+  }, [paceNotice, writeAllProjects, persist])
 
   const profileRef = useRef<Profile>({})
   useEffect(() => {
@@ -459,6 +523,9 @@ export function HabitsProvider({ children }: { children: React.ReactNode }) {
       profile,
       setProfile,
       projects,
+      paceNotice,
+      dismissPace,
+      undoPace,
       saveProject,
       deleteProject,
     }),
@@ -477,6 +544,9 @@ export function HabitsProvider({ children }: { children: React.ReactNode }) {
       profile,
       setProfile,
       projects,
+      paceNotice,
+      dismissPace,
+      undoPace,
       saveProject,
       deleteProject,
     ],
