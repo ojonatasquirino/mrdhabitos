@@ -1,13 +1,13 @@
 "use client"
 
 import { useMemo, useState } from "react"
-import { ArrowLeft, Check, ChevronLeft, ChevronRight, Pencil, Trash2, X } from "lucide-react"
+import { ArrowLeft, Check, ChevronLeft, ChevronRight, Pencil, Trash2, X, Shield } from "lucide-react"
 import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from "recharts"
 import { AppShell, BottomSheet, IconButton, PageHeader } from "@/components/app-shell"
 import { ChartContainer, ChartTooltip, ChartTooltipContent, type ChartConfig } from "@/components/ui/chart"
 import { Button } from "@/components/ui/button"
 import { addDays, toDateKey } from "@/lib/dates"
-import { bestStreak, currentStreak, habitRate, lastDays, toggleDay } from "@/lib/stats"
+import { bestStreak, currentStreak, habitRate, lastDays, offKind, toggleDay } from "@/lib/stats"
 import type { Habit } from "@/lib/types"
 import { cn } from "@/lib/utils"
 
@@ -107,6 +107,45 @@ export function HabitDetailPage({ habit, onUpdate, onBack, onDelete }: HabitDeta
         <Stat label="30 dias" value={habitRate(habit, lastDays(30))} unit="%" />
       </div>
 
+      <section className="mt-4 rounded-3xl border border-border p-4 lg:col-span-2 lg:mt-0 lg:p-6">
+        <h2 className="text-sm font-semibold">Dias de folga</h2>
+        <p className="mb-3 text-xs text-muted-foreground">
+          Nesses dias o hábito descansa: não conta e não quebra a sequência.
+        </p>
+        <div className="grid grid-cols-7 gap-1.5">
+          {["D", "S", "T", "Q", "Q", "S", "S"].map((d, i) => {
+            const on = habit.restDays?.includes(i)
+            return (
+              <button
+                key={i}
+                type="button"
+                aria-pressed={on}
+                aria-label={`Folga ${["domingo", "segunda", "terça", "quarta", "quinta", "sexta", "sábado"][i]}`}
+                onClick={() => {
+                  const set = new Set(habit.restDays ?? [])
+                  if (on) set.delete(i)
+                  else set.add(i)
+                  const next = { ...habit, restDays: [...set].sort() }
+                  if (!next.restDays.length) delete (next as { restDays?: number[] }).restDays
+                  onUpdate(next)
+                }}
+                className={cn(
+                  "pressable h-10 rounded-xl text-sm font-semibold",
+                  on ? "bg-foreground text-background" : "bg-muted text-muted-foreground",
+                )}
+              >
+                {d}
+              </button>
+            )
+          })}
+        </div>
+        <p className="mt-3 flex items-start gap-2 text-xs text-muted-foreground">
+          <Shield className="mt-0.5 h-3.5 w-3.5 shrink-0 text-sky-500" />
+          Coringa: 1 por semana. Num dia ruim, toque no dia marcado como não feito para trocar pelo coringa e manter a
+          sequência.
+        </p>
+      </section>
+
       <section className="mt-4 rounded-3xl border border-border p-4 lg:mt-0 lg:p-6">
         <div className="mb-3 flex items-center justify-between">
           <IconButton
@@ -140,6 +179,7 @@ export function HabitDetailPage({ habit, onUpdate, onBack, onDelete }: HabitDeta
           {Array.from({ length: daysInMonth }, (_, i) => {
             const key = toDateKey(new Date(month.getFullYear(), month.getMonth(), i + 1))
             const status = habit.completions[key]
+            const off = offKind(habit, key)
             const future = key > todayKey
             return (
               <button
@@ -157,11 +197,15 @@ export function HabitDetailPage({ habit, onUpdate, onBack, onDelete }: HabitDeta
                   "pressable relative flex aspect-square items-center justify-center rounded-full text-sm font-medium transition-colors disabled:opacity-25",
                   status === true && "bg-green-500 text-white",
                   status === false && "bg-red-500 text-white",
-                  status === undefined && "hover:bg-muted",
-                  key === todayKey && status === undefined && "ring-2 ring-foreground",
+                  status === undefined && !off && "hover:bg-muted",
+                  off === "coringa" && "bg-sky-500/15 text-sky-600 dark:text-sky-400",
+                  off === "folga" && status === undefined && "border border-dashed border-muted-foreground/40 text-muted-foreground",
+                  key === todayKey && status === undefined && !off && "ring-2 ring-foreground",
                 )}
               >
-                {status === true ? (
+                {off === "coringa" ? (
+                  <Shield className="h-4 w-4" />
+                ) : status === true ? (
                   <Check className="h-4 w-4" strokeWidth={3} />
                 ) : status === false ? (
                   <X className="h-4 w-4" strokeWidth={3} />

@@ -38,3 +38,24 @@ describe("weekdayRates", () => {
     expect(weekdayRates([]).every((d) => d.rate === 0)).toBe(true)
   })
 })
+
+import { offKind } from "./stats"
+
+describe("folga e coringa", () => {
+  // 2026-11-15 é domingo
+  const base = { id: "h", name: "Treino", completions: { "2026-11-16": true, "2026-11-17": true, "2026-11-19": true } as Record<string, boolean> }
+  it("folga semanal não quebra a sequência", () => {
+    const h = { ...base, restDays: [3] } // quarta (18) de folga
+    expect(currentStreak(h, new Date(2026, 10, 19))).toBe(3)
+    expect(currentStreak(base, new Date(2026, 10, 19))).toBe(1)
+  })
+  it("coringa: feito -> não feito -> coringa -> vazio, 1 por semana", () => {
+    let h = toggleDay({ ...base, completions: { ...base.completions, "2026-11-18": false } }, "2026-11-18")
+    expect(offKind(h, "2026-11-18")).toBe("coringa")
+    expect(currentStreak(h, new Date(2026, 10, 19))).toBe(3)
+    // segundo coringa na mesma semana não é oferecido
+    h = toggleDay({ ...h, completions: { ...h.completions, "2026-11-20": false } }, "2026-11-20")
+    expect(offKind(h, "2026-11-20")).toBeNull()
+    expect(h.completions["2026-11-20"]).toBeUndefined()
+  })
+})
