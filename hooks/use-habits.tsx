@@ -3,7 +3,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react"
 import { collection, deleteDoc, doc, getDoc, getDocs, onSnapshot, setDoc } from "firebase/firestore"
 import type { Habit } from "@/lib/types"
-import type { Project } from "@/lib/projects"
+import { applyReading, type Project } from "@/lib/projects"
 import { firebaseDb } from "@/lib/firebase"
 import { useAuth } from "@/hooks/use-auth"
 
@@ -264,10 +264,6 @@ export function HabitsProvider({ children }: { children: React.ReactNode }) {
     [persist],
   )
 
-  const updateHabit = useCallback(
-    (habit: Habit) => persist((prev) => prev.map((h) => (h.id === habit.id ? habit : h))),
-    [persist],
-  )
 
   const deleteHabit = useCallback(
     (id: string) => persist((prev) => prev.filter((h) => h.id !== id)),
@@ -364,6 +360,31 @@ export function HabitsProvider({ children }: { children: React.ReactNode }) {
       writeAllProjects(exists ? prev.map((p) => (p.id === project.id ? project : p)) : [...prev, project])
     },
     [writeAllProjects],
+  )
+
+  /**
+   * Salva o hábito e, se ele alimenta um projeto de leitura ativo, soma (ou desfaz) as páginas
+   * de cada dia marcado/desmarcado. Vale para qualquer tela: Hoje, calendário do hábito etc.
+   */
+  const updateHabit = useCallback(
+    (habit: Habit) => {
+      const prev = habitsRef.current.find((h) => h.id === habit.id)
+      persist((list) => list.map((h) => (h.id === habit.id ? habit : h)))
+      if (!prev) return
+      const keys = new Set([...Object.keys(prev.completions), ...Object.keys(habit.completions)])
+      const changed = [...keys].filter((k) => (prev.completions[k] === true) !== (habit.completions[k] === true))
+      if (!changed.length) return
+      let touched = false
+      const next = projectsRef.current.map((p) => {
+        if (p.status !== "ativo" || p.kind !== "leitura" || p.habitId !== habit.id) return p
+        let q = p
+        for (const k of changed) q = applyReading(q, k, habit.completions[k] === true ? (q.perCheck ?? 1) : 0)
+        if (q !== p) touched = true
+        return q
+      })
+      if (touched) writeAllProjects(next)
+    },
+    [persist, writeAllProjects],
   )
 
   const deleteProject = useCallback(

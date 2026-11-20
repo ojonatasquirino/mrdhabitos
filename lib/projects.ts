@@ -134,3 +134,28 @@ export function applyReading(p: Project, dayKey: string, pages: number): Project
   }
   return { ...p, steps, log }
 }
+
+export interface ReadingPlan {
+  /** páginas que faltam em todos os livros */
+  left: number
+  /** dias disponíveis até o prazo, contando hoje se ainda não leu */
+  days: number | null
+  /** páginas por dia para terminar no prazo */
+  perDay: number | null
+  /** o hábito atual (páginas por check) já dá conta do prazo */
+  enough: boolean
+  /** prazo já passou com páginas faltando */
+  overdue: boolean
+}
+
+/** Leitura: quantas páginas por dia são necessárias para terminar até o prazo. */
+export function readingPlan(p: Project, habit?: Habit, today = toDateKey(new Date())): ReadingPlan | null {
+  if (p.kind !== "leitura") return null
+  const left = p.steps.reduce((a, s) => a + Math.max(0, (s.total ?? 0) - (s.current ?? 0)), 0)
+  if (!p.deadline || !left) return { left, days: null, perDay: null, enough: true, overdue: false }
+  const readToday = habit?.completions[today] === true
+  const days = daysBetween(today, p.deadline) + (readToday ? 0 : 1)
+  if (days <= 0) return { left, days: 0, perDay: left, enough: false, overdue: true }
+  const perDay = Math.ceil(left / days)
+  return { left, days, perDay, enough: (p.perCheck ?? 0) >= perDay, overdue: false }
+}

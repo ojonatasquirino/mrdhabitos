@@ -104,8 +104,8 @@ export function HomePage() {
     // hábito ligado a projeto: o check alimenta o projeto
     const project = projectOf(habit.id)
     if (!project) return
+    // as páginas da leitura são somadas no updateHabit (vale para qualquer tela)
     const done = next.completions[key] === true
-    if (project.kind === "leitura") saveProject(applyReading(project, key, done ? (project.perCheck ?? 1) : 0))
     if (done) {
       setNudge({ projectId: project.id, dayKey: key, stamp: Date.now() })
       const stamp = Date.now()
