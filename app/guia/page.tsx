@@ -226,6 +226,15 @@ const SECTIONS: Section[] = [
             no seu Diário.
           </li>
           <li>
+            <b>Ritmo para o prazo:</b> na leitura com prazo, o app calcula quantas páginas por dia faltam. Com{" "}
+            <b>Ajustar ao prazo automaticamente</b> ligado, ele sobe as páginas do hábito quando o prazo aperta (até o
+            dobro do seu mínimo) e volta ao mínimo quando você adianta. Sempre avisa, com a opção Desfazer.
+          </li>
+          <li>
+            Renomear o hábito para outro número (ex.: &quot;Ler 8 páginas&quot;) atualiza as páginas que cada check
+            soma no projeto.
+          </li>
+          <li>
             Para mudar algo, abra o projeto e toque no <b>lápis</b>: dá para renomear, trocar ou tirar o prazo, adicionar,
             remover e reordenar etapas, corrigir páginas e trocar o hábito ligado. Projetos da Estante podem ser
             reabertos por ali.

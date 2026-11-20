@@ -378,7 +378,7 @@ export function ProjectDetailPage({ project: p }: { project: Project }) {
           project={p}
           habit={habit}
           onApply={(perDay) => {
-            saveProject({ ...p, perCheck: perDay })
+            saveProject({ ...p, perCheck: perDay, basePerCheck: perDay })
             // "Ler 5 páginas" vira "Ler 8 páginas"
             if (habit && /\d+\s*p[áa]gina/i.test(habit.name))
               updateHabit({ ...habit, name: habit.name.replace(/\d+(\s*p[áa]gina)/i, `${perDay}$1`) })
@@ -698,7 +698,8 @@ function ProjectForm({ editing }: { editing?: Project }) {
     editing ? (editing.habitId && habits.some((h) => h.id === editing.habitId) ? editing.habitId : "nenhum") : "novo",
   )
   const [newHabit, setNewHabit] = useState("")
-  const [perCheck, setPerCheck] = useState(String(editing?.perCheck ?? 5))
+  const [perCheck, setPerCheck] = useState(String(editing?.basePerCheck ?? editing?.perCheck ?? 5))
+  const [autoPace, setAutoPace] = useState(editing?.autoPace ?? true)
   const [reopen, setReopen] = useState(false)
   const active = projects.filter((p) => p.status === "ativo" && p.id !== editing?.id).length
   const willBeActive = !editing || editing.status === "ativo" || reopen
@@ -726,6 +727,8 @@ function ProjectForm({ editing }: { editing?: Project }) {
       deadline: deadline || undefined,
       habitId,
       perCheck: kind === "leitura" ? Math.max(1, Number(perCheck) || 5) : undefined,
+      basePerCheck: kind === "leitura" ? Math.max(1, Number(perCheck) || 5) : undefined,
+      autoPace: kind === "leitura" ? autoPace : undefined,
       steps: cleanSteps.map((s) => {
         const total = Number(s.total)
         return {
@@ -984,12 +987,36 @@ function ProjectForm({ editing }: { editing?: Project }) {
       )}
       {kind === "leitura" && habitChoice !== "nenhum" && (
         <label className="mt-3 flex items-center justify-between rounded-xl bg-muted px-3 py-2 text-sm">
-          Páginas por check
+          {autoPace && deadline ? "Mínimo de páginas por check" : "Páginas por check"}
           <input
             inputMode="numeric"
             value={perCheck}
             onChange={(e) => setPerCheck(e.target.value.replace(/\D/g, ""))}
             className="w-14 rounded-lg bg-background px-2 py-1.5 text-right font-semibold outline-none"
+          />
+        </label>
+      )}
+      {kind === "leitura" && habitChoice !== "nenhum" && (
+        <label
+          className={cn(
+            "mt-3 flex items-center justify-between gap-3 rounded-2xl border border-border p-4",
+            !deadline && "opacity-50",
+          )}
+        >
+          <span>
+            <span className="block text-sm font-semibold">Ajustar ao prazo automaticamente</span>
+            <span className="block text-xs leading-relaxed text-muted-foreground">
+              {deadline
+                ? `Se o prazo apertar, sobe as páginas por check (até ${Math.max(1, Number(perCheck) || 5) * 2}) e volta ao mínimo quando você adiantar.`
+                : "Defina um prazo para usar."}
+            </span>
+          </span>
+          <input
+            type="checkbox"
+            disabled={!deadline}
+            checked={autoPace && !!deadline}
+            onChange={(e) => setAutoPace(e.target.checked)}
+            className="h-5 w-5 shrink-0 accent-foreground"
           />
         </label>
       )}

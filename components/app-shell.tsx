@@ -6,6 +6,7 @@ import { usePathname, useRouter } from "next/navigation"
 import { BarChart3, Flag, Home, Plus } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { DesktopSidebar } from "@/components/desktop-sidebar"
+import { PaceToast } from "@/components/pace-toast"
 
 /**
  * Celular/tablet (< 1024px): coluna central estilo app com barra inferior.
@@ -86,6 +87,7 @@ export function AppShell({
           {children}
         </main>
         {nav && <BottomNav pathname={pathname} />}
+        <PaceToast />
       </div>
     </div>
   )
