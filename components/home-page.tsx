@@ -30,6 +30,7 @@ import { useTheme } from "@/hooks/use-theme"
 import { QUOTES, quoteIndexFor } from "@/lib/quotes"
 import { ReminderButton } from "@/components/reminder-button"
 import { HelpButton } from "@/components/help-button"
+import { SleepCard } from "@/components/sleep"
 import { useHabits } from "@/hooks/use-habits"
 import { useAuth } from "@/hooks/use-auth"
 import { getWeekDays, toDateKey, WEEKDAY_INITIALS } from "@/lib/dates"
@@ -44,7 +45,7 @@ function haptic() {
 }
 
 export function HomePage() {
-  const { habits, ready, updateHabit, notes, setNote, moveHabit, profile, setProfile } = useHabits()
+  const { habits, ready, updateHabit, notes, setNote, sleep, setSleep, moveHabit, profile, setProfile } = useHabits()
   const router = useRouter()
   const [intro, setIntro] = useState(false)
 
@@ -151,6 +152,7 @@ export function HomePage() {
             <>
               <TodaySummary pct={pct} done={doneToday} total={habits.length} />
               <DayNote value={notes[todayKey] ?? ""} onSave={(text) => setNote(todayKey, text)} />
+              <SleepCard sleep={sleep} onSave={setSleep} />
             </>
           )}
         </aside>

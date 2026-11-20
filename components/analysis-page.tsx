@@ -1,7 +1,8 @@
 "use client"
 
 import { useMemo, useState } from "react"
-import { Area, AreaChart, Bar, BarChart, CartesianGrid, Cell, XAxis, YAxis } from "recharts"
+import { Area, AreaChart, Bar, BarChart, CartesianGrid, Cell, ReferenceLine, XAxis, YAxis } from "recharts"
+import { formatHours } from "@/components/sleep"
 import { AppShell, PageHeader } from "@/components/app-shell"
 import { ChartContainer, ChartTooltip, ChartTooltipContent, type ChartConfig } from "@/components/ui/chart"
 import { toDateKey } from "@/lib/dates"
@@ -12,6 +13,7 @@ import { cn } from "@/lib/utils"
 interface AnalysisPageProps {
   habits: Habit[]
   notes?: Record<string, string>
+  sleep?: Record<string, number>
   onBack?: () => void
 }
 
@@ -26,7 +28,7 @@ const RANGES = [
 const trendConfig = { rate: { label: "Concluído", color: "var(--chart-2)" } } satisfies ChartConfig
 const weekdayConfig = { rate: { label: "Média", color: "var(--chart-1)" } } satisfies ChartConfig
 
-export function AnalysisPage({ habits, notes = {} }: AnalysisPageProps) {
+export function AnalysisPage({ habits, notes = {}, sleep = {} }: AnalysisPageProps) {
   const [range, setRange] = useState<number>(30)
   const days = useMemo(() => lastDays(range), [range])
 
@@ -173,6 +175,8 @@ export function AnalysisPage({ habits, notes = {} }: AnalysisPageProps) {
             </ul>
           </ChartCard>
 
+          <SleepChart sleep={sleep} days={days} range={range} />
+
           <Journal notes={notes} />
         </div>
       )}
@@ -296,5 +300,79 @@ function Journal({ notes }: { notes: Record<string, string> }) {
         })}
       </ol>
     </ChartCard>
+  )
+}
+
+const sleepConfig = { hours: { label: "Sono", color: "var(--chart-sleep)" } } satisfies ChartConfig
+
+/** Barras de horas dormidas por noite, no período selecionado (estilo "sleep tracker"). */
+function SleepChart({ sleep, days, range }: { sleep: Record<string, number>; days: Date[]; range: number }) {
+  const data = days.map((d) => ({
+    label: String(d.getDate()),
+    long: d.toLocaleDateString("pt-BR", { weekday: "short", day: "numeric", month: "short" }),
+    hours: sleep[toDateKey(d)] ?? null,
+  }))
+  const logged = data.filter((d) => d.hours != null).map((d) => d.hours as number)
+  const avg = logged.length ? logged.reduce((a, b) => a + b, 0) / logged.length : 0
+  const best = logged.length ? Math.max(...logged) : 0
+  const good = logged.filter((h) => h >= 7).length
+
+  return (
+    <ChartCard className="lg:col-span-2" title="Sono" description="Horas dormidas por noite">
+      {logged.length === 0 ? (
+        <p className="rounded-2xl bg-muted/60 p-6 text-center text-sm text-muted-foreground">
+          Registre seu sono na tela Hoje para ver o gráfico aqui.
+        </p>
+      ) : (
+        <>
+          <div className="mb-4 grid grid-cols-3 gap-2 lg:gap-5">
+            <MiniStat label="Média" value={formatHours(avg)} />
+            <MiniStat label="Melhor noite" value={formatHours(best)} />
+            <MiniStat label="7h ou mais" value={`${good}/${logged.length}`} />
+          </div>
+          <ChartContainer config={sleepConfig} className="aspect-auto h-48 w-full lg:h-64">
+            <BarChart data={data} margin={{ left: 0, right: 4, top: 8 }} barCategoryGap={range > 30 ? 1 : "18%"}>
+              <CartesianGrid vertical={false} />
+              <XAxis
+                dataKey="label"
+                tickLine={false}
+                axisLine={false}
+                tickMargin={8}
+                interval={range > 30 ? 9 : range > 7 ? 2 : 0}
+              />
+              <YAxis
+                domain={[0, 10]}
+                ticks={[0, 2, 4, 6, 8, 10]}
+                tickLine={false}
+                axisLine={false}
+                width={36}
+                tickFormatter={(v) => `${v}h`}
+              />
+              <ReferenceLine
+                y={avg}
+                stroke="var(--color-hours)"
+                strokeDasharray="4 4"
+                strokeOpacity={0.9}
+              />
+              <ChartTooltip
+                cursor={false}
+                content={<ChartTooltipContent labelKey="long" formatter={(v) => formatHours(Number(v))} />}
+              />
+              <Bar dataKey="hours" fill="var(--color-hours)" radius={[6, 6, 2, 2]} animationDuration={600} />
+            </BarChart>
+          </ChartContainer>
+          <p className="mt-2 text-[11px] text-muted-foreground">Linha tracejada: sua média no período.</p>
+        </>
+      )}
+    </ChartCard>
+  )
+}
+
+function MiniStat({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-2xl bg-muted/60 p-3">
+      <p className="text-[11px] font-medium text-muted-foreground">{label}</p>
+      <p className="mt-0.5 text-lg font-semibold tabular-nums">{value}</p>
+    </div>
   )
 }
