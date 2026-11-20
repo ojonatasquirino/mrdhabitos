@@ -1,6 +1,7 @@
 "use client"
 
 import { useMemo, useState } from "react"
+import Link from "next/link"
 import { Area, AreaChart, Bar, BarChart, CartesianGrid, Cell, ComposedChart, ReferenceLine, XAxis, YAxis } from "recharts"
 import { Trash2 } from "lucide-react"
 import { BottomSheet } from "@/components/ui-kit"
@@ -60,7 +61,15 @@ export function AnalysisPage({ habits, notes = {}, sleep = {}, sleepGoal }: Anal
 
   return (
     <AppShell>
-      <PageHeader subtitle="Seu progresso" title="Análise" />
+      <PageHeader
+        subtitle="Seu progresso"
+        title="Análise"
+        right={
+          <Link href="/revisao" className="pressable rounded-full bg-muted px-3 py-1.5 text-xs font-semibold">
+            Revisão
+          </Link>
+        }
+      />
 
       <div className="mb-5 grid grid-cols-3 rounded-2xl bg-muted p-1 lg:mb-6 lg:w-[28rem] lg:grid-cols-4">
         {RANGES.map((r) => (

@@ -114,7 +114,15 @@ const SECTIONS: Section[] = [
           dia inteiro passar sem o hábito feito.
         </li>
         <li>No detalhe do hábito você vê a sequência atual, o recorde e a taxa dos últimos 30 dias.</li>
-      </ul>
+        <li>
+            <b>Dias de folga:</b> no hábito, escolha os dias da semana em que ele descansa (ex.: treino no domingo). Nesses
+            dias aparece uma lua: não conta e não quebra a sequência.
+          </li>
+          <li>
+            <b>Coringa:</b> 1 por hábito por semana. Num dia ruim, toque no dia até passar de &quot;não feito&quot; para
+            o escudo azul. A sequência continua.
+          </li>
+        </ul>
     ),
   },
   {

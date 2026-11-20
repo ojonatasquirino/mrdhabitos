@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { Onboarding } from "@/components/onboarding"
-import { Check, ChevronRight, Flag, Flame, GripVertical, Moon, NotebookPen, Plus, Quote as QuoteIcon, Sun, X } from "lucide-react"
+import { CalendarCheck, Check, ChevronRight, Shield, Flag, Flame, GripVertical, Moon, NotebookPen, Plus, Quote as QuoteIcon, Sun, X } from "lucide-react"
 import { AppShell, BottomSheet, IconButton, PageHeader } from "@/components/app-shell"
 import { Button } from "@/components/ui/button"
 import { Avatar } from "@/components/avatar"
@@ -31,12 +31,13 @@ import { QUOTES, quoteIndexFor } from "@/lib/quotes"
 import { ReminderButton } from "@/components/reminder-button"
 import { HelpButton } from "@/components/help-button"
 import { SleepCard } from "@/components/sleep"
+import { reviewDue, weekStart } from "@/lib/review"
 import { ProjectToast, type ProjectNudge } from "@/components/projects"
 import { applyReading, type Project } from "@/lib/projects"
 import { useHabits } from "@/hooks/use-habits"
 import { useAuth } from "@/hooks/use-auth"
 import { getWeekDays, toDateKey, WEEKDAY_INITIALS } from "@/lib/dates"
-import { currentStreak, toggleDay } from "@/lib/stats"
+import { currentStreak, offKind, toggleDay } from "@/lib/stats"
 import type { Habit } from "@/lib/types"
 import { cn } from "@/lib/utils"
 
@@ -77,8 +78,10 @@ export function HomePage() {
   const todayKey = toDateKey(today)
   const weekDays = useMemo(() => getWeekDays(), [])
 
-  const doneToday = habits.filter((h) => h.completions[todayKey] === true).length
-  const pct = habits.length ? Math.round((doneToday / habits.length) * 100) : 0
+  // hábitos de folga ou com coringa hoje não entram na conta do dia
+  const activeToday = habits.filter((h) => !offKind(h, todayKey))
+  const doneToday = activeToday.filter((h) => h.completions[todayKey] === true).length
+  const pct = activeToday.length ? Math.round((doneToday / activeToday.length) * 100) : 100
   const firstName = profile.name || user?.displayName?.split(" ")[0]
   const sensors = useSensors(
     // segurar ~0,3s para arrastar; toque rápido continua marcando o dia
@@ -174,10 +177,18 @@ export function HomePage() {
       {/* Desktop: hábitos à esquerda, resumo/frase/nota numa coluna à direita. Mobile: mesma ordem de antes. */}
       <div className="lg:grid lg:grid-cols-[minmax(0,1fr)_300px] lg:items-start lg:gap-6 xl:grid-cols-[minmax(0,1fr)_320px] xl:gap-8">
         <aside className="lg:sticky lg:top-36 lg:col-start-2 lg:row-start-1 lg:space-y-3">
-          <DailyQuote date={today} />
+          <ReviewCard lastReview={profile.lastReview} />
+          {profile.weekFocus?.week === toDateKey(weekStart(today)) ? (
+            <section className="mb-4 rounded-3xl bg-muted/70 px-5 py-4">
+              <p className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">Foco da semana</p>
+              <p className="mt-1 text-[15px] font-semibold leading-snug">{profile.weekFocus.text}</p>
+            </section>
+          ) : (
+            <DailyQuote date={today} />
+          )}
           {habits.length > 0 && (
             <>
-              <TodaySummary pct={pct} done={doneToday} total={habits.length} />
+              <TodaySummary pct={pct} done={doneToday} total={activeToday.length} />
               <DayNote value={notes[todayKey] ?? ""} onSave={(text) => setNote(todayKey, text)} />
               <SleepCard sleep={sleep} onSave={setSleep} />
             </>
@@ -310,6 +321,7 @@ function HabitCard({
             key={key}
             label={WEEKDAY_INITIALS[i]}
             status={habit.completions[key]}
+            off={offKind(habit, key)}
             isToday={key === todayKey}
             isFuture={key > todayKey}
             onClick={() => onToggle(habit, key)}
@@ -323,18 +335,21 @@ function HabitCard({
 function DayDot({
   label,
   status,
+  off,
   isToday,
   isFuture,
   onClick,
 }: {
   label: string
   status: boolean | undefined
+  off?: "folga" | "coringa" | null
   isToday: boolean
   isFuture: boolean
   onClick: () => void
 }) {
   const [bump, setBump] = useState(0)
-  const stateLabel = status === true ? "feito" : status === false ? "não feito" : "sem marcação"
+  const stateLabel =
+    off === "coringa" ? "coringa" : status === true ? "feito" : status === false ? "não feito" : off === "folga" ? "folga" : "sem marcação"
 
   return (
     <button
@@ -355,10 +370,14 @@ function DayDot({
           bump > 0 && "animate-pop",
           status === true && "bg-green-500 text-white",
           status === false && "bg-red-500 text-white",
-          status === undefined && "bg-muted text-transparent",
-          isToday && status === undefined && "ring-2 ring-foreground ring-offset-2 ring-offset-card",
+          status === undefined && !off && "bg-muted text-transparent",
+          off === "coringa" && "bg-sky-500/15 text-sky-600 dark:text-sky-400",
+          off === "folga" && status === undefined && "border-2 border-dashed border-muted-foreground/30 text-muted-foreground/60",
+          isToday && status === undefined && !off && "ring-2 ring-foreground ring-offset-2 ring-offset-card",
         )}
       >
+        {off === "coringa" && <Shield className="h-5 w-5" />}
+        {off === "folga" && status === undefined && <Moon className="h-4 w-4" />}
         {status === true && <Check className="h-5 w-5" strokeWidth={3} />}
         {status === false && <X className="h-5 w-5" strokeWidth={3} />}
       </span>
@@ -387,6 +406,27 @@ function EmptyState() {
         Como funciona?
       </Link>
     </section>
+  )
+}
+
+/** Card de sábado (a partir das 18h) e domingo: chama para a revisão da semana. */
+function ReviewCard({ lastReview }: { lastReview?: string }) {
+  const due = reviewDue(lastReview)
+  if (!due) return null
+  return (
+    <Link
+      href={`/revisao?semana=${due}`}
+      className="pressable mb-4 flex items-center gap-4 rounded-3xl bg-foreground p-5 text-background animate-in fade-in slide-in-from-top-2 duration-500"
+    >
+      <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-background/15">
+        <CalendarCheck className="h-5 w-5" />
+      </span>
+      <span className="min-w-0 flex-1">
+        <span className="block text-base font-semibold">Sua semana está fechando</span>
+        <span className="block text-sm text-background/70">Ver revisão · 1 min</span>
+      </span>
+      <ChevronRight className="h-5 w-5 text-background/60" />
+    </Link>
   )
 }
 
