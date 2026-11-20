@@ -213,7 +213,11 @@ export function HabitsProvider({ children }: { children: React.ReactNode }) {
         const local = readLocal()
         const localNotes = readNotes()
         if (local.length || Object.keys(localNotes).length)
-          await setDoc(ref, { habits: local, notes: localNotes, profile: readProfile() }, { merge: true })
+          await setDoc(
+            ref,
+            { habits: local, notes: localNotes, profile: readProfile(), projects: JSON.parse(JSON.stringify(readProjects())) },
+            { merge: true },
+          )
       }
       unsub = onSnapshot(ref, (s) => {
         apply((s.data()?.habits as Habit[]) ?? [])
@@ -332,12 +336,18 @@ export function HabitsProvider({ children }: { children: React.ReactNode }) {
   )
 
   const writeAllProjects = useCallback(
-    (next: Project[]) => {
+    (raw: Project[]) => {
+      // remove campos vazios: o Firestore recusa undefined
+      const next = JSON.parse(JSON.stringify(raw)) as Project[]
       projectsRef.current = next
       setProjectsState(next)
       writeProjects(next)
       if (enabled && uid) {
-        setDoc(doc(firebaseDb(), "users", uid), { projects: next }, { mergeFields: ["projects"] }).catch(console.error)
+        try {
+          setDoc(doc(firebaseDb(), "users", uid), { projects: next }, { mergeFields: ["projects"] }).catch(console.error)
+        } catch (e) {
+          console.error(e)
+        }
       }
     },
     [enabled, uid],

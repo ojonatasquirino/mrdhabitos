@@ -1,6 +1,6 @@
 import { getApps, initializeApp, type FirebaseApp } from "firebase/app"
 import { getAuth, type Auth } from "firebase/auth"
-import { getFirestore, type Firestore } from "firebase/firestore"
+import { getFirestore, initializeFirestore, type Firestore } from "firebase/firestore"
 
 const config = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
@@ -20,4 +20,16 @@ function getApp(): FirebaseApp {
 }
 
 export const firebaseAuth = (): Auth => getAuth(getApp())
-export const firebaseDb = (): Firestore => getFirestore(getApp())
+let db: Firestore | undefined
+
+/** Campos opcionais vazios (undefined) são ignorados em vez de derrubar a gravação inteira. */
+export const firebaseDb = (): Firestore => {
+  if (db) return db
+  const a = getApp()
+  try {
+    db = initializeFirestore(a, { ignoreUndefinedProperties: true })
+  } catch {
+    db = getFirestore(a) // já inicializado (recarga a quente)
+  }
+  return db
+}
