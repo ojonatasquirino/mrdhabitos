@@ -10,6 +10,7 @@ import {
   BookOpen,
   ChevronDown,
   CircleCheck,
+  Flag,
   Flame,
   GripVertical,
   HelpCircle,
@@ -160,6 +161,70 @@ const SECTIONS: Section[] = [
     ),
   },
   {
+    id: "projetos",
+    icon: Flag,
+    title: "Projetos",
+    summary: "Metas com prazo, alimentadas por um hábito",
+    body: (
+      <>
+        <p>
+          Algumas coisas não são hábito, são destino: terminar um livro, construir um sistema, concluir um curso. Na aba{" "}
+          <b>Projetos</b>, o hábito é o motor e o projeto é o destino. Você continua marcando um toque por dia, e o
+          projeto mostra para onde esses toques estão te levando.
+        </p>
+        <ul>
+          <li>
+            <b>Leitura:</b> as etapas são livros, com o total de páginas. Cada check do hábito ligado soma as páginas
+            (ex.: 5) e o app calcula quando você termina nesse ritmo.
+          </li>
+          <li>
+            <b>Construção:</b> as etapas são marcos que você define. Ex.: sistema de roteiro, narração, edição.
+          </li>
+          <li>
+            <b>Estudo:</b> as etapas são módulos ou aulas de um curso.
+          </li>
+        </ul>
+        <p className="mt-4">
+          <b>Criar um projeto:</b>
+        </p>
+        <ol>
+          <li>
+            Abra <b>Projetos</b> &gt; <b>Novo projeto</b> e escolha o tipo.
+          </li>
+          <li>
+            Dê um nome e, se quiser, escreva quando ele estará <b>pronto</b> e um <b>prazo</b>.
+          </li>
+          <li>Adicione de 3 a 5 etapas (na leitura, os livros e o número de páginas).</li>
+          <li>
+            Ligue um <b>hábito</b> que alimenta o projeto: crie um novo (ex.: &quot;Ler 5 páginas&quot;) ou use um que
+            você já tem.
+          </li>
+        </ol>
+        <ul className="mt-3">
+          <li>
+            Na tela Hoje, o hábito ligado mostra o nome do projeto. Ao marcar, aparece um aviso pequeno: na leitura,
+            ajuste as páginas se leu mais; nos outros tipos, confirme se concluiu a próxima etapa. Pode ignorar, ele
+            some sozinho.
+          </li>
+          <li>
+            O selo <b>No ritmo</b>, <b>Atenção</b> ou <b>Atrasado</b> compara o seu progresso com o tempo que passou até
+            o prazo.
+          </li>
+          <li>
+            A <b>linha do tempo</b>, no topo, mostra todos os projetos lado a lado, com uma linha marcando hoje.
+          </li>
+          <li>
+            Ao concluir, o projeto vai para a <b>Estante</b>. Na leitura, você guarda a frase que ficou, e ela entra
+            no seu Diário.
+          </li>
+          <li>
+            No máximo <b>3 projetos ativos</b> ao mesmo tempo. Poucos e constantes vencem muitos pela metade.
+          </li>
+        </ul>
+      </>
+    ),
+  },
+  {
     id: "analise",
     icon: BarChart3,
     title: "Ler a Análise",
@@ -292,6 +357,8 @@ const SECTIONS: Section[] = [
         <dd>Use a opção Adicionar ao Calendário no sino. O aviso dentro do app só funciona com ele aberto.</dd>
         <dt>Como envio uma sugestão?</dt>
         <dd>Toque no ícone de interrogação (?), no topo da tela Hoje, e use &quot;Sugestões e melhorias&quot;. Ela chega direto para o criador do app.</dd>
+        <dt>Qual a diferença entre hábito e projeto?</dt>
+        <dd>Hábito não tem fim: é o mínimo que você faz todo dia. Projeto tem fim: um livro, um sistema, um curso. Ligue um hábito ao projeto e cada check o faz avançar.</dd>
         <dt>Quantos hábitos devo ter?</dt>
         <dd>De 5 a 10. Comece com poucos e vá adicionando.</dd>
       </dl>

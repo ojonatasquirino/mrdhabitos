@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { BarChart3, Home, Plus } from "lucide-react"
+import { BarChart3, Flag, Home, Plus } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { DesktopSidebar } from "@/components/desktop-sidebar"
 
@@ -46,7 +46,7 @@ export function AppShell({
 
 function BottomNav({ pathname }: { pathname: string }) {
   const item = (href: string, label: string, Icon: typeof Home) => {
-    const active = pathname === href
+    const active = href === "/" ? pathname === "/" : pathname.startsWith(href)
     return (
       <Link
         href={href}
@@ -68,6 +68,7 @@ function BottomNav({ pathname }: { pathname: string }) {
       <div className="safe-bottom mx-4 mb-2 flex items-center gap-3">
         <div className="glass pointer-events-auto flex h-16 flex-1 items-center gap-1 rounded-full p-1.5">
           {item("/", "Hoje", Home)}
+          {item("/projetos", "Projetos", Flag)}
           {item("/analise", "Análise", BarChart3)}
         </div>
         <Link
