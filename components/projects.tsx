@@ -32,6 +32,7 @@ import {
   projectPace,
   projectProgress,
   readingForecast,
+  readingPlan,
   type Project,
   type ProjectKind,
   type ProjectStep,
@@ -198,6 +199,7 @@ function ProjectCard({ project: p, habit }: { project: Project; habit?: Habit })
       </div>
       <ProgressBar value={pct} className="mt-2" />
       {left != null && <p className="mt-1.5 text-[11px] text-muted-foreground">{progressLine(p)}</p>}
+      <PlanLine project={p} habit={habit} />
 
       {step && (
         <div className="mt-4 rounded-2xl bg-muted/60 px-4 py-3">
@@ -288,7 +290,7 @@ function Timeline({ projects }: { projects: Project[] }) {
 
 export function ProjectDetailPage({ project: p }: { project: Project }) {
   const router = useRouter()
-  const { habits, saveProject, deleteProject, setNote, notes } = useHabits()
+  const { habits, saveProject, deleteProject, setNote, notes, updateHabit } = useHabits()
   const habit = habits.find((h) => h.id === p.habitId)
   const [finishing, setFinishing] = useState(false)
   const [takeaway, setTakeaway] = useState("")
@@ -370,6 +372,19 @@ export function ProjectDetailPage({ project: p }: { project: Project }) {
           }
         />
       </div>
+
+      {!isDone && (
+        <ReadingPlanCard
+          project={p}
+          habit={habit}
+          onApply={(perDay) => {
+            saveProject({ ...p, perCheck: perDay })
+            // "Ler 5 páginas" vira "Ler 8 páginas"
+            if (habit && /\d+\s*p[áa]gina/i.test(habit.name))
+              updateHabit({ ...habit, name: habit.name.replace(/\d+(\s*p[áa]gina)/i, `${perDay}$1`) })
+          }}
+        />
+      )}
 
       {habit && (
         <Link
@@ -528,6 +543,94 @@ export function ProjectDetailPage({ project: p }: { project: Project }) {
         </div>
       </BottomSheet>
     </AppShell>
+  )
+}
+
+/** Linha curta no card: páginas por dia para terminar no prazo. */
+function PlanLine({ project, habit }: { project: Project; habit?: Habit }) {
+  const plan = readingPlan(project, habit)
+  if (!plan?.perDay) return null
+  return (
+    <p
+      className={cn(
+        "mt-2 flex items-center gap-1.5 text-xs font-medium",
+        plan.enough ? "text-green-700 dark:text-green-400" : "text-amber-700 dark:text-amber-400",
+      )}
+    >
+      <BookOpen className="h-3.5 w-3.5" />
+      {plan.overdue
+        ? `Prazo vencido · faltam ${plan.left} páginas`
+        : `${plan.perDay} págs/dia para terminar até ${fmtDate(project.deadline!)}`}
+    </p>
+  )
+}
+
+/** Detalhe da leitura: ritmo necessário para o prazo e atalho para ajustar o hábito. */
+function ReadingPlanCard({
+  project: p,
+  habit,
+  onApply,
+}: {
+  project: Project
+  habit?: Habit
+  onApply: (perDay: number) => void
+}) {
+  const plan = readingPlan(p, habit)
+  if (!plan || !plan.left) return null
+  if (!plan.perDay)
+    return (
+      <p className="mt-3 rounded-2xl bg-muted/60 p-4 text-xs leading-relaxed text-muted-foreground">
+        Faltam <b className="text-foreground">{plan.left} páginas</b>. Defina um prazo (no lápis) para ver quantas
+        páginas por dia você precisa ler.
+      </p>
+    )
+  const current = p.perCheck ?? 0
+  return (
+    <section
+      className={cn(
+        "mt-3 rounded-2xl border p-4",
+        plan.enough ? "border-green-500/30 bg-green-500/5" : "border-amber-500/30 bg-amber-500/5",
+      )}
+    >
+      <p className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">Ritmo para o prazo</p>
+      {plan.overdue ? (
+        <p className="mt-1 text-sm">
+          O prazo passou e faltam <b>{plan.left} páginas</b>. Ajuste o prazo no lápis para recalcular.
+        </p>
+      ) : (
+        <>
+          <p className="mt-1 flex items-baseline gap-2">
+            <span className="text-3xl font-semibold tabular-nums">{plan.perDay}</span>
+            <span className="text-sm text-muted-foreground">páginas por dia</span>
+          </p>
+          <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+            Faltam {plan.left} páginas em {plan.days} {plan.days === 1 ? "dia" : "dias"} (até {fmtDate(p.deadline!)}
+            {habit?.completions[toDateKey(new Date())] === true ? ", a partir de amanhã" : ", contando hoje"}).
+          </p>
+          {habit && (
+            <p
+              className={cn(
+                "mt-3 text-sm font-medium",
+                plan.enough ? "text-green-700 dark:text-green-400" : "text-amber-700 dark:text-amber-400",
+              )}
+            >
+              {plan.enough
+                ? `Seu hábito de ${current} páginas por check dá conta. ✓`
+                : `Seu hábito soma ${current} por check. Faltam ${plan.perDay - current} por dia para chegar no prazo.`}
+            </p>
+          )}
+          {habit && !plan.enough && (
+            <button
+              type="button"
+              onClick={() => onApply(plan.perDay!)}
+              className="pressable mt-3 h-11 w-full rounded-xl bg-foreground text-sm font-semibold text-background"
+            >
+              Ajustar hábito para {plan.perDay} páginas
+            </button>
+          )}
+        </>
+      )}
+    </section>
   )
 }
 
