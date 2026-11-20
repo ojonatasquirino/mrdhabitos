@@ -1,7 +1,7 @@
 "use client"
 
 import { useMemo, useState } from "react"
-import { Area, AreaChart, Bar, BarChart, CartesianGrid, Cell, ReferenceLine, XAxis, YAxis } from "recharts"
+import { Area, AreaChart, Bar, BarChart, CartesianGrid, Cell, ComposedChart, XAxis, YAxis } from "recharts"
 import { formatHours } from "@/components/sleep"
 import { AppShell, PageHeader } from "@/components/app-shell"
 import { ChartContainer, ChartTooltip, ChartTooltipContent, type ChartConfig } from "@/components/ui/chart"
@@ -303,15 +303,25 @@ function Journal({ notes }: { notes: Record<string, string> }) {
   )
 }
 
-const sleepConfig = { hours: { label: "Sono", color: "var(--chart-sleep)" } } satisfies ChartConfig
+const sleepConfig = {
+  hours: { label: "Dormiu", color: "var(--chart-sleep)" },
+  trend: { label: "Tendência", color: "var(--chart-sleep)" },
+} satisfies ChartConfig
 
 /** Barras de horas dormidas por noite, no período selecionado (estilo "sleep tracker"). */
 function SleepChart({ sleep, days, range }: { sleep: Record<string, number>; days: Date[]; range: number }) {
-  const data = days.map((d) => ({
-    label: String(d.getDate()),
-    long: d.toLocaleDateString("pt-BR", { weekday: "short", day: "numeric", month: "short" }),
-    hours: sleep[toDateKey(d)] ?? null,
-  }))
+  const data = days.map((d) => {
+    // tendência: média das noites registradas nos últimos 7 dias
+    const win = lastDays(7, d)
+      .map((x) => sleep[toDateKey(x)])
+      .filter((v): v is number => v != null)
+    return {
+      label: d.toLocaleDateString("pt-BR", { day: "2-digit", month: "short" }).replace(".", ""),
+      long: d.toLocaleDateString("pt-BR", { weekday: "short", day: "numeric", month: "short" }),
+      hours: sleep[toDateKey(d)] ?? null,
+      trend: win.length ? Math.round((win.reduce((a, b) => a + b, 0) / win.length) * 100) / 100 : null,
+    }
+  })
   const logged = data.filter((d) => d.hours != null).map((d) => d.hours as number)
   const avg = logged.length ? logged.reduce((a, b) => a + b, 0) / logged.length : 0
   const best = logged.length ? Math.max(...logged) : 0
@@ -330,15 +340,21 @@ function SleepChart({ sleep, days, range }: { sleep: Record<string, number>; day
             <MiniStat label="Melhor noite" value={formatHours(best)} />
             <MiniStat label="7h ou mais" value={`${good}/${logged.length}`} />
           </div>
-          <ChartContainer config={sleepConfig} className="aspect-auto h-48 w-full lg:h-64">
-            <BarChart data={data} margin={{ left: 0, right: 4, top: 8 }} barCategoryGap={range > 30 ? 1 : "18%"}>
+          <ChartContainer config={sleepConfig} className="aspect-auto h-52 w-full lg:h-72">
+            <ComposedChart data={data} margin={{ left: 0, right: 4, top: 8 }} barCategoryGap={range > 30 ? 1 : "22%"}>
+              <defs>
+                <linearGradient id="fillSleep" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="var(--color-trend)" stopOpacity={0.45} />
+                  <stop offset="95%" stopColor="var(--color-trend)" stopOpacity={0.02} />
+                </linearGradient>
+              </defs>
               <CartesianGrid vertical={false} />
               <XAxis
                 dataKey="label"
                 tickLine={false}
                 axisLine={false}
-                tickMargin={8}
-                interval={range > 30 ? 9 : range > 7 ? 2 : 0}
+                tickMargin={10}
+                minTickGap={24}
               />
               <YAxis
                 domain={[0, 10]}
@@ -348,20 +364,33 @@ function SleepChart({ sleep, days, range }: { sleep: Record<string, number>; day
                 width={36}
                 tickFormatter={(v) => `${v}h`}
               />
-              <ReferenceLine
-                y={avg}
-                stroke="var(--color-hours)"
-                strokeDasharray="4 4"
-                strokeOpacity={0.9}
-              />
               <ChartTooltip
                 cursor={false}
                 content={<ChartTooltipContent labelKey="long" formatter={(v) => formatHours(Number(v))} />}
               />
-              <Bar dataKey="hours" fill="var(--color-hours)" radius={[6, 6, 2, 2]} animationDuration={600} />
-            </BarChart>
+              <Bar dataKey="hours" fill="var(--color-hours)" fillOpacity={0.35} radius={[6, 6, 2, 2]} animationDuration={600} />
+              <Area
+                dataKey="trend"
+                type="monotone"
+                stroke="var(--color-trend)"
+                strokeWidth={2}
+                fill="url(#fillSleep)"
+                connectNulls
+                dot={false}
+                animationDuration={800}
+              />
+            </ComposedChart>
           </ChartContainer>
-          <p className="mt-2 text-[11px] text-muted-foreground">Linha tracejada: sua média no período.</p>
+          <div className="mt-3 flex items-center gap-4 text-[11px] text-muted-foreground">
+            <span className="flex items-center gap-1.5">
+              <span className="h-2.5 w-2.5 rounded-[3px] bg-[var(--chart-sleep)] opacity-40" />
+              Noite
+            </span>
+            <span className="flex items-center gap-1.5">
+              <span className="h-0.5 w-4 rounded-full bg-[var(--chart-sleep)]" />
+              Tendência (média de 7 dias)
+            </span>
+          </div>
         </>
       )}
     </ChartCard>
