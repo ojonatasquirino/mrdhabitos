@@ -2,6 +2,9 @@
 
 import { useMemo, useState } from "react"
 import { Area, AreaChart, Bar, BarChart, CartesianGrid, Cell, ComposedChart, ReferenceLine, XAxis, YAxis } from "recharts"
+import { Trash2 } from "lucide-react"
+import { BottomSheet } from "@/components/ui-kit"
+import { useHabits } from "@/hooks/use-habits"
 import { DEFAULT_SLEEP_GOAL, formatDiff, formatHours } from "@/components/sleep"
 import { AppShell, PageHeader } from "@/components/app-shell"
 import { ChartContainer, ChartTooltip, ChartTooltipContent, type ChartConfig } from "@/components/ui/chart"
@@ -276,30 +279,61 @@ function Heatmap({ habits, days }: { habits: Habit[]; days: Date[] }) {
   )
 }
 
+function noteDate(key: string) {
+  const [y, m, d] = key.split("-").map(Number)
+  return new Date(y, m - 1, d).toLocaleDateString("pt-BR", { weekday: "short", day: "numeric", month: "short" })
+}
+
 function Journal({ notes }: { notes: Record<string, string> }) {
-  const entries = Object.entries(notes)
-    .sort(([a], [b]) => (a < b ? 1 : -1))
-    .slice(0, 30)
+  const { setNote } = useHabits()
+  const [all, setAll] = useState(false)
+  const entries = Object.entries(notes).sort(([a], [b]) => (a < b ? 1 : -1))
   if (!entries.length) return null
 
   return (
     <ChartCard className="lg:col-span-2" title="Diário" description="Suas notas mais recentes">
-      <ol className="space-y-4 lg:grid lg:grid-cols-2 lg:gap-x-8 lg:gap-y-5 lg:space-y-0">
-        {entries.map(([key, text]) => {
-          const [y, m, d] = key.split("-").map(Number)
-          const date = new Date(y, m - 1, d).toLocaleDateString("pt-BR", {
-            weekday: "short",
-            day: "numeric",
-            month: "short",
-          })
-          return (
-            <li key={key} className="border-l-2 border-border pl-3">
-              <p className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">{date}</p>
-              <p className="mt-0.5 whitespace-pre-line text-sm leading-relaxed">{text}</p>
-            </li>
-          )
-        })}
+      {entries.length > 3 && (
+        <button
+          type="button"
+          onClick={() => setAll(true)}
+          className="pressable -mt-9 mb-4 ml-auto block rounded-full bg-muted px-3 py-1.5 text-xs font-semibold"
+        >
+          Ver todas ({entries.length})
+        </button>
+      )}
+      <ol className="space-y-4 lg:grid lg:grid-cols-3 lg:gap-x-8 lg:space-y-0">
+        {entries.slice(0, 3).map(([key, text]) => (
+          <li key={key} className="border-l-2 border-border pl-3">
+            <p className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">{noteDate(key)}</p>
+            <p className="mt-0.5 whitespace-pre-line text-sm leading-relaxed">{text}</p>
+          </li>
+        ))}
       </ol>
+
+      <BottomSheet open={all} onClose={() => setAll(false)}>
+        <h2 className="text-lg font-semibold">Todas as notas</h2>
+        <p className="mt-1 text-sm text-muted-foreground">{entries.length} registros</p>
+        <ol className="mb-2 mt-4 max-h-[60vh] space-y-3 overflow-y-auto">
+          {entries.map(([key, text]) => (
+            <li key={key} className="flex gap-3 rounded-2xl border border-border p-3">
+              <span className="min-w-0 flex-1">
+                <span className="block text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
+                  {noteDate(key)}
+                </span>
+                <span className="mt-0.5 block whitespace-pre-line text-sm leading-relaxed">{text}</span>
+              </span>
+              <button
+                type="button"
+                aria-label="Apagar nota"
+                onClick={() => setNote(key, "")}
+                className="pressable flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-muted-foreground hover:bg-muted hover:text-red-500"
+              >
+                <Trash2 className="h-4 w-4" />
+              </button>
+            </li>
+          ))}
+        </ol>
+      </BottomSheet>
     </ChartCard>
   )
 }
