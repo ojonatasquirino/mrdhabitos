@@ -20,6 +20,8 @@ export interface Profile {
   photo?: string
   /** já viu (ou pulou) a introdução */
   onboarded?: boolean
+  /** meta de sono por noite, em horas (padrão 7) */
+  sleepGoal?: number
   /** chave da caixa de entrada do sono (app Atalhos -> /api/sono) */
   sleepKey?: string
 }
@@ -310,6 +312,8 @@ export function HabitsProvider({ children }: { children: React.ReactNode }) {
       if (next.photo) clean.photo = next.photo
       if (next.onboarded) clean.onboarded = true
       if (next.sleepKey) clean.sleepKey = next.sleepKey
+      if (next.sleepGoal && next.sleepGoal >= 4 && next.sleepGoal <= 12)
+        clean.sleepGoal = Math.round(next.sleepGoal * 4) / 4
       setProfileState(clean)
       writeProfile(clean)
       if (enabled && uid) {

@@ -153,8 +153,16 @@ const SECTIONS: Section[] = [
           </li>
           <li>Errou? Toque de novo e ajuste, ou apague o registro do dia.</li>
           <li>
-            Na <b>Análise</b>, o gráfico Sono mostra uma barra por noite, a curva de tendência (média dos últimos 7
-            dias), a melhor noite e quantas noites tiveram 7 horas ou mais.
+            <b>Meta de sono:</b> no fim da mesma tela, em <b>Meta por noite</b>, defina quantas horas quer dormir
+            (padrão 7h). Ao registrar, o app mostra se ficou na meta ou quanto faltou.
+          </li>
+          <li>
+            Na <b>Análise</b>, o gráfico Sono mostra uma barra por noite (azul na meta, laranja abaixo), a linha
+            tracejada da meta, a curva de tendência, a média, as noites na meta e o saldo médio.
+          </li>
+          <li>
+            <b>Sono e performance:</b> compara quanto dos seus hábitos você cumpriu depois de noites na meta e abaixo
+            dela. Assim você vê se o sono está pesando no seu dia.
           </li>
         </ul>
       </>

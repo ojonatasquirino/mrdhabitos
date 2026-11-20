@@ -10,6 +10,6 @@ const AnalysisPage = dynamic(() => import("@/components/analysis-page").then((m)
 })
 
 export default function AnalysisRoute() {
-  const { habits, notes, sleep } = useHabits()
-  return <AnalysisPage habits={habits} notes={notes} sleep={sleep} />
+  const { habits, notes, sleep, profile } = useHabits()
+  return <AnalysisPage habits={habits} notes={notes} sleep={sleep} sleepGoal={profile.sleepGoal} />
 }
