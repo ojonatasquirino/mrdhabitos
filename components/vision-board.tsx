@@ -3,6 +3,15 @@
 import { useCallback, useEffect, useRef, useState } from "react"
 import { ArrowDownToLine, ArrowUpToLine, ImagePlus, Maximize2, MessageCircle, Minimize2, Scan, Trash2, X } from "lucide-react"
 import { BottomSheet } from "@/components/ui-kit"
+import { Spinner } from "@/components/ui/spinner"
+import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 import { useVision } from "@/hooks/use-vision"
 import { compressImage, type VisionItem } from "@/lib/vision"
 import { cn } from "@/lib/utils"
@@ -29,6 +38,8 @@ export function VisionBoard() {
   const [showComment, setShowComment] = useState<string | null>(null)
   const [commentDraft, setCommentDraft] = useState<{ id: string; text: string } | null>(null)
   const [presenting, setPresenting] = useState(false)
+  // menu da foto: abre ao tocar sem arrastar
+  const [menuFor, setMenuFor] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
   const box = useRef<HTMLDivElement>(null)
   const fileRef = useRef<HTMLInputElement>(null)
@@ -37,7 +48,6 @@ export function VisionBoard() {
   const lastTap = useRef<{ id: string; t: number } | null>(null)
   const fitted = useRef(false)
 
-  const sel = items.find((i) => i.id === selected)
   /** miniatura no quadro; foto cheia quando ampliada ou na apresentação */
   const src = (id: string) => full[id] ?? thumbs[id]
   useEffect(() => {
@@ -133,6 +143,7 @@ export function VisionBoard() {
     e.stopPropagation()
     ;(e.currentTarget as Element).setPointerCapture?.(e.pointerId)
     setSelected(it.id)
+    setMenuFor(null)
     if (mode === "resize") gesture.current = { mode, id: it.id, px: e.clientX, w0: it.w }
     else gesture.current = { mode, id: it.id, px: e.clientX, py: e.clientY, ox: it.x, oy: it.y, moved: false }
   }
@@ -201,7 +212,10 @@ export function VisionBoard() {
       if (g.mode === "move" && !g.moved) {
         const it = items.find((i) => i.id === g.id)
         const now = Date.now()
-        if (it?.type === "image" && it.comment) setShowComment((c) => (c === it.id ? null : it.id))
+        if (it?.type === "image") {
+          if (it.comment) setShowComment(it.id)
+          setMenuFor(it.id)
+        }
         lastTap.current = { id: g.id, t: now }
       }
     }
@@ -300,15 +314,17 @@ export function VisionBoard() {
       </div>
 
       {ready && !items.length && !presenting && (
-        <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center px-8 text-center">
-          <span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-background shadow-sm">
-            <ImagePlus className="h-6 w-6" />
-          </span>
-          <p className="mt-4 text-lg font-semibold">Visualize o futuro que você está construindo</p>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Fotos da família, do setup, dos lugares e das conquistas. Arraste e aumente como quiser.
-          </p>
-        </div>
+        <Empty className="pointer-events-none absolute inset-0">
+          <EmptyHeader>
+            <EmptyMedia variant="icon">
+              <ImagePlus />
+            </EmptyMedia>
+            <EmptyTitle>Visualize o futuro que você está construindo</EmptyTitle>
+            <EmptyDescription>
+              Fotos da família, do setup, dos lugares e das conquistas. Arraste e aumente como quiser.
+            </EmptyDescription>
+          </EmptyHeader>
+        </Empty>
       )}
     </div>
   )
@@ -348,7 +364,7 @@ export function VisionBoard() {
           disabled={busy}
           className="glass pressable flex h-10 items-center gap-2 rounded-full px-4 text-sm font-semibold disabled:opacity-60"
         >
-          <ImagePlus className="h-4 w-4" /> {busy ? "Enviando..." : "Imagem"}
+          {busy ? <Spinner /> : <ImagePlus className="h-4 w-4" />} {busy ? "Enviando..." : "Imagem"}
         </button>
         <input
           ref={fileRef}
@@ -363,34 +379,35 @@ export function VisionBoard() {
         />
       </div>
 
-      {/* barra do item selecionado */}
-      {sel && (
-        <div className="absolute inset-x-3 bottom-3 flex justify-center">
-          <div className="glass flex max-w-full items-center gap-1 overflow-x-auto rounded-full p-1.5 animate-in fade-in slide-in-from-bottom-2 duration-200">
-            <ToolBtn
-              label="Comentário"
-              onClick={() => setCommentDraft({ id: sel.id, text: sel.comment ?? "" })}
-              active={!!sel.comment}
-              flat
-            >
-              <MessageCircle className="h-4 w-4" />
-            </ToolBtn>
-            <ToolBtn label="Trazer para frente" onClick={() => patch(sel.id, { z: topZ() })} flat>
-              <ArrowUpToLine className="h-4 w-4" />
-            </ToolBtn>
-            <ToolBtn
-              label="Mandar para trás"
-              onClick={() => patch(sel.id, { z: Math.min(0, ...items.map((i) => i.z)) - 1 })}
-              flat
-            >
-              <ArrowDownToLine className="h-4 w-4" />
-            </ToolBtn>
-            <ToolBtn label="Apagar" onClick={() => remove(sel.id)} flat danger>
-              <Trash2 className="h-4 w-4" />
-            </ToolBtn>
-          </div>
-        </div>
-      )}
+      {/* menu da foto (toque sem arrastar) */}
+      {(() => {
+        const m = items.find((i) => i.id === menuFor)
+        if (!m || presenting) return null
+        const left = view.x + (m.x + m.w / 2) * view.s
+        const top = view.y + (m.y + heightOf(m)) * view.s
+        return (
+          <DropdownMenu open onOpenChange={(o) => !o && setMenuFor(null)}>
+            <DropdownMenuTrigger asChild>
+              <span className="pointer-events-none absolute size-px" style={{ left, top }} aria-hidden="true" />
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="center" className="w-52">
+              <DropdownMenuItem onSelect={() => setCommentDraft({ id: m.id, text: m.comment ?? "" })}>
+                <MessageCircle /> {m.comment ? "Editar comentário" : "Comentário"}
+              </DropdownMenuItem>
+              <DropdownMenuItem onSelect={() => patch(m.id, { z: topZ() })}>
+                <ArrowUpToLine /> Trazer para frente
+              </DropdownMenuItem>
+              <DropdownMenuItem onSelect={() => patch(m.id, { z: Math.min(0, ...items.map((i) => i.z)) - 1 })}>
+                <ArrowDownToLine /> Mandar para trás
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem variant="destructive" onSelect={() => remove(m.id)}>
+                <Trash2 /> Apagar
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        )
+      })()}
 
       <BottomSheet open={!!commentDraft} onClose={() => setCommentDraft(null)}>
         <h2 className="text-lg font-semibold">Comentário</h2>

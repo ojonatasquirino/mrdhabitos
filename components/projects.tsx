@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation"
 import {
   ArrowLeft,
   BookOpen,
+  CalendarIcon,
   Check,
   ChevronRight,
   Flag,
@@ -20,10 +21,22 @@ import {
   X,
 } from "lucide-react"
 import { AppShell, BottomSheet, IconButton, PageHeader } from "@/components/app-shell"
+import { toast } from "sonner"
+import { ConfirmDialog } from "@/components/confirm-dialog"
+import { ptBR } from "react-day-picker/locale"
+import { Button } from "@/components/ui/button"
+import { Calendar } from "@/components/ui/calendar"
+import { Checkbox } from "@/components/ui/checkbox"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Switch } from "@/components/ui/switch"
+import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty"
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
 import { useHabits } from "@/hooks/use-habits"
 import { toDateKey } from "@/lib/dates"
 import {
   KIND_META,
+  applyReading,
   MAX_ACTIVE,
   PACE_META,
   daysBetween,
@@ -66,16 +79,18 @@ export function ProjectsPage() {
       {ready && active.length > 0 && <Timeline projects={active} />}
 
       {ready && active.length === 0 && (
-        <div className="mt-6 flex flex-col items-center rounded-3xl border border-dashed border-border px-6 py-10 text-center">
-          <span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-muted">
-            <Flag className="h-6 w-6" />
-          </span>
-          <h2 className="mt-4 text-lg font-semibold">Hábito é o motor. Projeto é o destino.</h2>
-          <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-            Um livro para terminar, um sistema para construir, um curso para concluir. Ligue um hábito diário e cada
-            check avança o projeto.
-          </p>
-        </div>
+        <Empty className="mt-6 rounded-3xl border border-dashed">
+          <EmptyHeader>
+            <EmptyMedia variant="icon">
+              <Flag />
+            </EmptyMedia>
+            <EmptyTitle>Hábito é o motor. Projeto é o destino.</EmptyTitle>
+            <EmptyDescription>
+              Um livro para terminar, um sistema para construir, um curso para concluir. Ligue um hábito diário e cada
+              check avança o projeto.
+            </EmptyDescription>
+          </EmptyHeader>
+        </Empty>
       )}
 
       <div className="mt-5 grid gap-3 lg:grid-cols-2 lg:gap-5">
@@ -519,29 +534,16 @@ export function ProjectDetailPage({ project: p }: { project: Project }) {
         </button>
       </BottomSheet>
 
-      <BottomSheet open={confirmDelete} onClose={() => setConfirmDelete(false)}>
-        <h2 className="text-lg font-semibold">Excluir projeto?</h2>
-        <p className="mt-1 text-sm text-muted-foreground">O hábito ligado e o histórico dele continuam.</p>
-        <div className="mb-2 mt-5 flex gap-2">
-          <button
-            type="button"
-            onClick={() => setConfirmDelete(false)}
-            className="pressable h-12 flex-1 rounded-2xl bg-muted font-semibold"
-          >
-            Cancelar
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              router.replace("/projetos")
-              deleteProject(p.id)
-            }}
-            className="pressable h-12 flex-1 rounded-2xl bg-red-600 font-semibold text-white"
-          >
-            Excluir
-          </button>
-        </div>
-      </BottomSheet>
+      <ConfirmDialog
+        open={confirmDelete}
+        onOpenChange={setConfirmDelete}
+        title={`Excluir “${p.name}”?`}
+        description="As etapas e o progresso serão apagados. O hábito ligado e o histórico dele continuam. Não dá para desfazer."
+        onConfirm={() => {
+          router.replace("/projetos")
+          deleteProject(p.id)
+        }}
+      />
     </AppShell>
   )
 }
@@ -783,41 +785,38 @@ function ProjectForm({ editing }: { editing?: Project }) {
             <span className="block text-sm font-semibold">Reabrir projeto</span>
             <span className="block text-xs text-muted-foreground">Sai da Estante e volta para os ativos.</span>
           </span>
-          <input
-            type="checkbox"
-            checked={reopen}
-            onChange={(e) => setReopen(e.target.checked)}
-            className="h-5 w-5 accent-foreground"
-          />
+          <Switch checked={reopen} onCheckedChange={setReopen} aria-label="Reabrir projeto" />
         </label>
       )}
 
       <span className={label}>Tipo</span>
-      <div className="mt-2 grid grid-cols-3 gap-2">
+      <ToggleGroup
+        type="single"
+        variant="outline"
+        value={kind}
+        onValueChange={(v) => {
+          if (!v || editing) return
+          setKind(v as ProjectKind)
+          setHabitChoice("novo")
+          setNewHabit("")
+        }}
+        className="mt-2 w-full"
+      >
         {(Object.keys(KIND_META) as ProjectKind[]).map((k) => {
           const Icon = KIND_ICON[k]
-          const locked = !!editing && k !== kind
           return (
-            <button
+            <ToggleGroupItem
               key={k}
-              type="button"
-              disabled={locked}
-              onClick={() => {
-                setKind(k)
-                setHabitChoice("novo")
-                setNewHabit("")
-              }}
-              className={cn(
-                "pressable flex flex-col items-center gap-2 rounded-2xl border p-4 text-sm font-medium disabled:opacity-35",
-                kind === k ? "border-foreground bg-foreground text-background" : "border-border",
-              )}
+              value={k}
+              disabled={!!editing && k !== kind}
+              className="h-11 flex-1 gap-1.5 font-medium data-[state=on]:bg-foreground data-[state=on]:text-background"
             >
-              <Icon className="h-5 w-5" />
+              <Icon className="size-4" />
               {KIND_META[k].label}
-            </button>
+            </ToggleGroupItem>
           )
         })}
-      </div>
+      </ToggleGroup>
       {editing && <p className="mt-1.5 text-[11px] text-muted-foreground">O tipo não muda depois de criado.</p>}
 
       <label className={cn(label, "mt-6")}>
@@ -844,18 +843,35 @@ function ProjectForm({ editing }: { editing?: Project }) {
 
       <label className={cn(label, "mt-5")}>
         Prazo <span className="normal-case">(opcional)</span>
-        <span className="flex items-center gap-2">
-          <input
-            type="date"
-            value={deadline}
-            onChange={(e) => setDeadline(e.target.value)}
-            className={cn(input, "normal-case tracking-normal text-foreground")}
-          />
+        <span className="mt-2 flex items-center gap-2 normal-case tracking-normal">
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button variant="outline" className="h-12 flex-1 justify-start rounded-xl font-normal text-foreground">
+                <CalendarIcon className="size-4" />
+                {deadline
+                  ? new Date(deadline + "T12:00").toLocaleDateString("pt-BR", {
+                      day: "2-digit",
+                      month: "long",
+                      year: "numeric",
+                    })
+                  : "Escolher data"}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="start">
+              <Calendar
+                mode="single"
+                locale={ptBR}
+                selected={deadline ? new Date(deadline + "T12:00") : undefined}
+                defaultMonth={deadline ? new Date(deadline + "T12:00") : undefined}
+                onSelect={(d) => setDeadline(d ? toDateKey(d) : "")}
+              />
+            </PopoverContent>
+          </Popover>
           {deadline && (
             <button
               type="button"
               onClick={() => setDeadline("")}
-              className="mt-2 shrink-0 rounded-xl px-3 py-3 text-sm normal-case tracking-normal text-muted-foreground hover:bg-muted"
+              className="shrink-0 rounded-xl px-3 py-3 text-sm text-muted-foreground hover:bg-muted"
             >
               Remover
             </button>
@@ -916,12 +932,7 @@ function ProjectForm({ editing }: { editing?: Project }) {
               ) : (
                 editing && (
                   <label className="flex items-center gap-1.5">
-                    <input
-                      type="checkbox"
-                      checked={!!s.done}
-                      onChange={(e) => setStep(i, { done: e.target.checked })}
-                      className="h-4 w-4 accent-foreground"
-                    />
+                    <Checkbox checked={!!s.done} onCheckedChange={(c) => setStep(i, { done: c === true })} />
                     Concluída
                   </label>
                 )
@@ -962,19 +973,20 @@ function ProjectForm({ editing }: { editing?: Project }) {
 
       <span className={cn(label, "mt-7")}>Hábito que alimenta o projeto</span>
       <p className="mt-1 text-xs text-muted-foreground">O mínimo diário. Cada check dele avança o projeto.</p>
-      <select
-        value={habitChoice}
-        onChange={(e) => setHabitChoice(e.target.value)}
-        className="mt-2 w-full rounded-xl bg-muted px-3 py-3 text-base outline-none"
-      >
-        <option value="novo">Criar um hábito novo</option>
-        {habits.map((h) => (
-          <option key={h.id} value={h.id}>
-            {h.name}
-          </option>
-        ))}
-        <option value="nenhum">Sem hábito por enquanto</option>
-      </select>
+      <Select value={habitChoice} onValueChange={setHabitChoice}>
+        <SelectTrigger className="mt-2 h-12! w-full rounded-xl text-base">
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="novo">Criar um hábito novo</SelectItem>
+          {habits.map((h) => (
+            <SelectItem key={h.id} value={h.id}>
+              {h.name}
+            </SelectItem>
+          ))}
+          <SelectItem value="nenhum">Sem hábito por enquanto</SelectItem>
+        </SelectContent>
+      </Select>
       {habitChoice === "novo" && (
         <input
           value={newHabit}
@@ -1011,12 +1023,11 @@ function ProjectForm({ editing }: { editing?: Project }) {
                 : "Defina um prazo para usar."}
             </span>
           </span>
-          <input
-            type="checkbox"
+          <Switch
             disabled={!deadline}
             checked={autoPace && !!deadline}
-            onChange={(e) => setAutoPace(e.target.checked)}
-            className="h-5 w-5 shrink-0 accent-foreground"
+            onCheckedChange={setAutoPace}
+            aria-label="Ajustar ao prazo automaticamente"
           />
         </label>
       )}
@@ -1037,36 +1048,26 @@ function ProjectForm({ editing }: { editing?: Project }) {
 /* Aviso depois do check (tela Hoje)                                   */
 /* ------------------------------------------------------------------ */
 
-export interface ProjectNudge {
-  projectId: string
-  dayKey: string
-  /** id para reiniciar o tempo do aviso */
-  stamp: number
+/** Aviso pequeno e opcional que aparece ao marcar um hábito ligado a projeto. Some sozinho. */
+/** Mostra o aviso (toast) depois do check de um hábito ligado a projeto. Some sozinho. */
+export function showProjectNudge(projectId: string, dayKey: string) {
+  toast.custom((t) => <ProjectNudgeCard projectId={projectId} dayKey={dayKey} onClose={() => toast.dismiss(t)} />, {
+    id: "project-nudge",
+    duration: 7000,
+  })
 }
 
-/** Aviso pequeno e opcional que aparece ao marcar um hábito ligado a projeto. Some sozinho. */
-export function ProjectToast({
-  nudge,
-  onClose,
-  onReadingChange,
-}: {
-  nudge: ProjectNudge | null
-  onClose: () => void
-  onReadingChange: (projectId: string, dayKey: string, pages: number) => void
-}) {
+function ProjectNudgeCard({ projectId, dayKey, onClose }: { projectId: string; dayKey: string; onClose: () => void }) {
   const { projects, saveProject } = useHabits()
-  const p = nudge ? projects.find((x) => x.id === nudge.projectId) : undefined
-  if (!nudge || !p) return null
+  const p = projects.find((x) => x.id === projectId)
+  if (!p) return null
   const step = nextStep(p)
-  const pages = p.log?.[nudge.dayKey] ?? 0
+  const pages = p.log?.[dayKey] ?? 0
+  const onReadingChange = (n: number) => saveProject(applyReading(p, dayKey, n))
 
   return (
-    <div
-      key={nudge.stamp}
-      role="status"
-      className="fixed inset-x-0 bottom-[6.5rem] z-40 mx-auto w-full max-w-md px-4 animate-in fade-in slide-in-from-bottom-3 duration-300 sm:absolute lg:bottom-8 lg:left-auto lg:right-8 lg:mx-0"
-    >
-      <div className="glass flex items-center gap-3 rounded-3xl p-3 pl-4">
+    <div role="status" className="w-[min(356px,calc(100vw-2rem))]">
+      <div className="flex items-center gap-3 rounded-2xl border bg-popover p-3 pl-4 text-popover-foreground shadow-lg">
         <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-foreground text-background">
           {(() => {
             const Icon = KIND_ICON[p.kind]
@@ -1087,10 +1088,10 @@ export function ProjectToast({
         </span>
         {p.kind === "leitura" ? (
           <span className="flex shrink-0 items-center gap-1">
-            <StepButton label="Menos páginas" onClick={() => onReadingChange(p.id, nudge.dayKey, Math.max(0, pages - 1))}>
+            <StepButton label="Menos páginas" onClick={() => onReadingChange(Math.max(0, pages - 1))}>
               <Minus className="h-4 w-4" />
             </StepButton>
-            <StepButton label="Mais páginas" onClick={() => onReadingChange(p.id, nudge.dayKey, pages + 1)}>
+            <StepButton label="Mais páginas" onClick={() => onReadingChange(pages + 1)}>
               <Plus className="h-4 w-4" />
             </StepButton>
           </span>

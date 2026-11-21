@@ -4,6 +4,8 @@ import { useEffect, useState } from "react"
 import { BedDouble, Minus, Plus, Target } from "lucide-react"
 import { useHabits } from "@/hooks/use-habits"
 import { Button } from "@/components/ui/button"
+import { Slider } from "@/components/ui/slider"
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
 import { BottomSheet } from "@/components/ui-kit"
 import { addDays, toDateKey } from "@/lib/dates"
 import { cn } from "@/lib/utils"
@@ -159,32 +161,33 @@ function SleepSheet({
         </button>
       </div>
 
-      <input
-        type="range"
+      <Slider
         min={0}
         max={14}
         step={0.25}
-        value={h}
-        onChange={(e) => setH(Number(e.target.value))}
+        value={[h]}
+        onValueChange={([v]) => setH(v)}
         aria-label="Horas de sono"
-        className="mt-4 w-full accent-indigo-500"
+        className="mt-6"
       />
 
-      <div className="mt-3 flex justify-between gap-2">
+      <ToggleGroup
+        type="single"
+        variant="outline"
+        value={Number.isInteger(h) && h >= 5 && h <= 9 ? String(h) : ""}
+        onValueChange={(v) => v && setH(Number(v))}
+        className="mt-4 w-full"
+      >
         {[5, 6, 7, 8, 9].map((v) => (
-          <button
+          <ToggleGroupItem
             key={v}
-            type="button"
-            onClick={() => setH(v)}
-            className={cn(
-              "pressable flex-1 rounded-full py-2 text-sm font-medium",
-              h === v ? "bg-foreground text-background" : "bg-muted text-foreground/80",
-            )}
+            value={String(v)}
+            className="flex-1 font-medium data-[state=on]:bg-foreground data-[state=on]:text-background"
           >
             {v}h
-          </button>
+          </ToggleGroupItem>
         ))}
-      </div>
+      </ToggleGroup>
 
       <div className="mt-5 flex flex-col gap-2">
         <Button className="h-12 rounded-2xl text-base" onClick={() => onSave(h)}>

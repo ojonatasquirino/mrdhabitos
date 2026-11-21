@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { Onboarding } from "@/components/onboarding"
-import { CalendarCheck, Check, ChevronRight, Shield, Flag, Flame, GripVertical, Moon, NotebookPen, Plus, Quote as QuoteIcon, Sun, X } from "lucide-react"
+import { CalendarCheck, Check, ChevronRight, Shield, Flag, Flame, GripVertical, Moon, NotebookPen, Pencil, Plus, Trash2, Quote as QuoteIcon, Sun, X } from "lucide-react"
 import { AppShell, BottomSheet, IconButton, PageHeader } from "@/components/app-shell"
 import { Button } from "@/components/ui/button"
 import { Avatar } from "@/components/avatar"
@@ -32,8 +32,21 @@ import { ReminderButton } from "@/components/reminder-button"
 import { HelpButton } from "@/components/help-button"
 import { SleepCard } from "@/components/sleep"
 import { reviewDue, weekStart } from "@/lib/review"
-import { ProjectToast, type ProjectNudge } from "@/components/projects"
-import { applyReading, type Project } from "@/lib/projects"
+import { showProjectNudge } from "@/components/projects"
+import { ConfirmDialog } from "@/components/confirm-dialog"
+import { Badge } from "@/components/ui/badge"
+import { Progress } from "@/components/ui/progress"
+import { Skeleton } from "@/components/ui/skeleton"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import { toast } from "sonner"
+import { type Project } from "@/lib/projects"
 import { useHabits } from "@/hooks/use-habits"
 import { useAuth } from "@/hooks/use-auth"
 import { getWeekDays, toDateKey, WEEKDAY_INITIALS } from "@/lib/dates"
@@ -48,9 +61,8 @@ function haptic() {
 }
 
 export function HomePage() {
-  const { habits, ready, updateHabit, notes, setNote, sleep, setSleep, moveHabit, profile, setProfile, projects, saveProject } =
+  const { habits, ready, updateHabit, notes, setNote, sleep, setSleep, moveHabit, profile, setProfile, projects } =
     useHabits()
-  const [nudge, setNudge] = useState<ProjectNudge | null>(null)
   const router = useRouter()
   const [intro, setIntro] = useState(false)
 
@@ -89,10 +101,15 @@ export function HomePage() {
     useSensor(MouseSensor, { activationConstraint: { delay: 250, tolerance: 5 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
   )
+  // segurar e arrastar reordena; segurar e soltar sem mover abre o menu do hábito
+  const [menuFor, setMenuFor] = useState<string | null>(null)
   const onDragEnd = (e: DragEndEvent) => {
     if (e.over && e.active.id !== e.over.id) {
       haptic()
       moveHabit(String(e.active.id), String(e.over.id))
+    } else if (Math.abs(e.delta.x) + Math.abs(e.delta.y) < 8) {
+      menuOpenedAt = Date.now()
+      setMenuFor(String(e.active.id))
     }
   }
   const weekday = today.toLocaleDateString("pt-BR", { weekday: "long" }).split("-")[0]
@@ -109,19 +126,24 @@ export function HomePage() {
     if (!project) return
     // as páginas da leitura são somadas no updateHabit (vale para qualquer tela)
     const done = next.completions[key] === true
-    if (done) {
-      setNudge({ projectId: project.id, dayKey: key, stamp: Date.now() })
-      const stamp = Date.now()
-      window.setTimeout(() => setNudge((n) => (n && n.stamp <= stamp ? null : n)), 7000)
-    } else setNudge(null)
+    if (done) showProjectNudge(project.id, key)
+    else toast.dismiss("project-nudge")
   }
 
   if (!ready) {
     return (
       <AppShell>
-        <div className="space-y-4 pt-16">
+        <div className="space-y-3 pt-16">
+          <Skeleton className="mb-4 h-24 rounded-3xl" />
           {[0, 1, 2].map((i) => (
-            <div key={i} className="h-28 animate-pulse rounded-3xl bg-muted" />
+            <div key={i} className="rounded-3xl border p-4">
+              <Skeleton className="mb-4 h-5 w-40" />
+              <div className="grid grid-cols-7 gap-1">
+                {[0, 1, 2, 3, 4, 5, 6].map((j) => (
+                  <Skeleton key={j} className="mx-auto size-10 rounded-full" />
+                ))}
+              </div>
+            </div>
           ))}
         </div>
       </AppShell>
@@ -160,16 +182,6 @@ export function HomePage() {
             </Link>
           </span>
         }
-      />
-
-      <ProjectToast
-        nudge={nudge}
-        onClose={() => setNudge(null)}
-        onReadingChange={(id, key, pages) => {
-          const p = projects.find((x) => x.id === id)
-          if (p) saveProject(applyReading(p, key, pages))
-          setNudge((n) => (n ? { ...n, stamp: Date.now() } : n))
-        }}
       />
 
       <Onboarding open={intro} onClose={() => closeIntro(false)} onFinish={() => closeIntro(true)} />
@@ -217,6 +229,8 @@ export function HomePage() {
                           weekDays={weekDays}
                           todayKey={todayKey}
                           onToggle={toggle}
+                          menuOpen={menuFor === habit.id}
+                          onMenuChange={(o) => setMenuFor(o ? habit.id : null)}
                         />
                       </SortableItem>
                     ))}
@@ -238,40 +252,25 @@ export function HomePage() {
 }
 
 function TodaySummary({ pct, done, total }: { pct: number; done: number; total: number }) {
-  const r = 30
-  const c = 2 * Math.PI * r
   const message =
     done === total ? "Dia completo. Ridículo de bom." : done === 0 ? "Comece pelo menor." : "Continue, falta pouco."
 
   return (
-    <section className="flex items-center gap-5 rounded-3xl bg-foreground p-5 text-background">
-      <div className="relative h-[76px] w-[76px] shrink-0">
-        <svg viewBox="0 0 76 76" className="h-full w-full -rotate-90">
-          <circle cx="38" cy="38" r={r} fill="none" stroke="currentColor" strokeOpacity={0.15} strokeWidth="8" />
-          <circle
-            cx="38"
-            cy="38"
-            r={r}
-            fill="none"
-            stroke="#22c55e"
-            strokeWidth="8"
-            strokeLinecap="round"
-            strokeDasharray={c}
-            strokeDashoffset={c - (pct / 100) * c}
-            className="transition-[stroke-dashoffset] duration-700 ease-out"
-          />
-        </svg>
-        <span className="absolute inset-0 flex items-center justify-center text-lg font-semibold tabular-nums">
-          {pct}%
-        </span>
+    <section className="rounded-3xl bg-foreground p-5 text-background">
+      <div className="flex items-end justify-between gap-4">
+        <div>
+          <p className="text-3xl font-semibold tabular-nums">
+            {done}
+            <span className="text-background/40">/{total}</span>
+          </p>
+          <p className="text-sm text-background/60">{message}</p>
+        </div>
+        <span className="text-lg font-semibold tabular-nums">{pct}%</span>
       </div>
-      <div>
-        <p className="text-3xl font-semibold tabular-nums">
-          {done}
-          <span className="text-background/40">/{total}</span>
-        </p>
-        <p className="text-sm text-background/60">{message}</p>
-      </div>
+      <Progress
+        value={pct}
+        className="mt-4 h-2.5 bg-background/15 [&>[data-slot=progress-indicator]]:bg-green-500"
+      />
     </section>
   )
 }
@@ -282,35 +281,85 @@ function HabitCard({
   weekDays,
   todayKey,
   onToggle,
+  menuOpen,
+  onMenuChange,
 }: {
   habit: Habit
   project?: Project
   weekDays: string[]
   todayKey: string
   onToggle: (habit: Habit, key: string) => void
+  menuOpen: boolean
+  onMenuChange: (open: boolean) => void
 }) {
   const streak = currentStreak(habit)
+  const router = useRouter()
+  const { deleteHabit } = useHabits()
+  const [confirm, setConfirm] = useState(false)
 
   return (
-    <div className="rounded-3xl border border-border bg-card p-4 shadow-[0_1px_2px_rgba(0,0,0,0.04)] lg:pl-7 min-[1360px]:flex min-[1360px]:items-center min-[1360px]:gap-6 min-[1360px]:py-3 min-[1360px]:pr-5">
+    <div
+      onClickCapture={(e) => {
+        if (Date.now() - menuOpenedAt < 500) {
+          e.preventDefault()
+          e.stopPropagation()
+        }
+      }}
+      className="relative rounded-3xl border border-border bg-card p-4 shadow-[0_1px_2px_rgba(0,0,0,0.04)] lg:pl-7 min-[1360px]:flex min-[1360px]:items-center min-[1360px]:gap-6 min-[1360px]:py-3 min-[1360px]:pr-5">
+      {/* segurar sem arrastar (ou clique direito) abre o menu do hábito */}
+      <DropdownMenu open={menuOpen} onOpenChange={onMenuChange}>
+        <DropdownMenuTrigger asChild>
+          <span className="pointer-events-none absolute left-6 top-12 size-px" aria-hidden="true" />
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="start" className="w-56">
+          <DropdownMenuLabel className="truncate">{habit.name}</DropdownMenuLabel>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem onSelect={() => router.push(`/habito/${habit.id}`)}>
+            <Pencil /> Renomear
+          </DropdownMenuItem>
+          <DropdownMenuItem onSelect={() => router.push(`/habito/${habit.id}`)}>
+            <Moon /> Dias de folga
+          </DropdownMenuItem>
+          <DropdownMenuItem onSelect={() => router.push("/projetos/novo")}>
+            <Flag /> Ligar a um projeto
+          </DropdownMenuItem>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem variant="destructive" onSelect={() => setConfirm(true)}>
+            <Trash2 /> Excluir hábito
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+      <ConfirmDialog
+        open={confirm}
+        onOpenChange={setConfirm}
+        title={`Excluir “${habit.name}”?`}
+        description="Todo o histórico deste hábito será apagado. Não dá para desfazer."
+        confirm="Excluir hábito"
+        onConfirm={() => deleteHabit(habit.id)}
+      />
+
       <Link
         href={`/habito/${habit.id}`}
+        onContextMenu={(e) => {
+          e.preventDefault()
+          onMenuChange(true)
+        }}
         className="pressable -m-1 flex items-center gap-2 rounded-2xl p-1 lg:hover:bg-muted min-[1360px]:m-0 min-[1360px]:min-w-0 min-[1360px]:flex-1 min-[1360px]:px-2 min-[1360px]:py-2"
       >
         <span className="min-w-0 flex-1">
           <span className="block truncate text-base font-semibold">{habit.name}</span>
           {project && (
-            <span className="mt-0.5 flex items-center gap-1 truncate text-xs text-muted-foreground">
-              <Flag className="h-3 w-3 shrink-0" />
-              {project.name}
-            </span>
+            <Badge variant="secondary" className="mt-1 max-w-full gap-1 font-normal">
+              <Flag className="size-3 shrink-0" />
+              <span className="truncate">{project.name}</span>
+            </Badge>
           )}
         </span>
         {streak > 0 && (
-          <span className="flex items-center gap-1 rounded-full bg-orange-50 px-2 py-0.5 text-xs font-semibold text-orange-600">
-            <Flame className="h-3.5 w-3.5" />
+          <Badge variant="outline" className="gap-1 border-orange-500/30 bg-orange-500/10 font-semibold text-orange-600">
+            <Flame className="size-3.5" />
             {streak}
-          </span>
+          </Badge>
         )}
         <ChevronRight className="h-4 w-4 text-muted-foreground/50" />
       </Link>
@@ -522,6 +571,9 @@ function DayNote({ value, onSave }: { value: string; onSave: (text: string) => v
     </>
   )
 }
+
+/** hora em que o menu abriu: o toque que soltou o "segurar" não deve abrir a página nem marcar o dia */
+let menuOpenedAt = 0
 
 function SortableItem({ id, children }: { id: string; children: React.ReactNode }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id })

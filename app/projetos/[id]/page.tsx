@@ -1,5 +1,6 @@
 "use client"
 
+import { PageSkeleton } from "@/components/page-skeleton"
 import Link from "next/link"
 import { useParams } from "next/navigation"
 import { ProjectDetailPage } from "@/components/projects"
@@ -8,7 +9,7 @@ import { useHabits } from "@/hooks/use-habits"
 export default function ProjectRoute() {
   const { id } = useParams<{ id: string }>()
   const { projects, ready } = useHabits()
-  if (!ready) return <div className="min-h-screen bg-background" aria-busy="true" />
+  if (!ready) return <PageSkeleton />
   const project = projects.find((p) => p.id === id)
   if (!project)
     return (

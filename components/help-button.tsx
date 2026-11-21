@@ -5,6 +5,7 @@ import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { BookOpen, ChevronRight, CircleCheck, CircleHelp, Lightbulb } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { Spinner } from "@/components/ui/spinner"
 import { BottomSheet, IconButton } from "@/components/ui-kit"
 import { useAuth } from "@/hooks/use-auth"
 import { useHabits } from "@/hooks/use-habits"
@@ -174,7 +175,13 @@ function HelpPanel({ onClose }: { onClose: () => void }) {
               onClick={send}
               className="mt-3 h-12 w-full rounded-xl text-base"
             >
-              {state === "sending" ? "Enviando..." : "Enviar sugestão"}
+              {state === "sending" ? (
+                <>
+                  <Spinner /> Enviando...
+                </>
+              ) : (
+                "Enviar sugestão"
+              )}
             </Button>
           </>
         )}

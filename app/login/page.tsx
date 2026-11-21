@@ -4,7 +4,9 @@ import { useState } from "react"
 import { Heart } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
+import { Field, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field"
+import { Separator } from "@/components/ui/separator"
+import { Spinner } from "@/components/ui/spinner"
 import { authErrorMessage, useAuth } from "@/hooks/use-auth"
 
 type Mode = "login" | "register"
@@ -50,8 +52,8 @@ export default function LoginPage() {
         </div>
       </div>
 
-      <div className="flex-1 flex items-center justify-center p-6 sm:p-8">
-        <div className="w-full max-w-sm space-y-6">
+      <div className="flex-1 flex items-center justify-center bg-muted/40 p-5 sm:p-8">
+        <div className="w-full max-w-sm space-y-6 rounded-3xl border bg-card p-6 shadow-sm">
           <div className="lg:hidden text-center space-y-3">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src="/logo.webp?v=2" alt="Logo MRD" width={72} height={72} className="mx-auto h-[72px] w-[72px] rounded-2xl shadow-lg" />
@@ -85,39 +87,46 @@ export default function LoginPage() {
           </Button>
 
           <div className="flex items-center gap-3 text-xs text-muted-foreground">
-            <div className="h-px flex-1 bg-border" />
+            <Separator className="flex-1" />
             ou com e-mail
-            <div className="h-px flex-1 bg-border" />
+            <Separator className="flex-1" />
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-4">
-            {mode === "register" && (
-              <div className="space-y-2">
-                <Label htmlFor="name" className="text-foreground">Nome</Label>
-                <Input id="name" value={name} onChange={(e) => setName(e.target.value)} autoComplete="name"
-                  className="min-h-[48px] bg-background text-foreground border-border" />
-              </div>
-            )}
-            <div className="space-y-2">
-              <Label htmlFor="email" className="text-foreground">E-mail</Label>
-              <Input id="email" type="email" required value={email} onChange={(e) => setEmail(e.target.value)}
-                autoComplete="email" className="min-h-[48px] bg-background text-foreground border-border" />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="password" className="text-foreground">Senha</Label>
-              <Input id="password" type="password" required minLength={6} value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                autoComplete={mode === "login" ? "current-password" : "new-password"}
-                className="min-h-[48px] bg-background text-foreground border-border" />
-            </div>
+          <form onSubmit={handleSubmit}>
+            <FieldGroup className="gap-4">
+              {mode === "register" && (
+                <Field>
+                  <FieldLabel htmlFor="name">Nome</FieldLabel>
+                  <Input id="name" value={name} onChange={(e) => setName(e.target.value)} autoComplete="name"
+                    className="min-h-[48px]" />
+                </Field>
+              )}
+              <Field>
+                <FieldLabel htmlFor="email">E-mail</FieldLabel>
+                <Input id="email" type="email" required value={email} onChange={(e) => setEmail(e.target.value)}
+                  autoComplete="email" className="min-h-[48px]" />
+              </Field>
+              <Field data-invalid={!!error || undefined}>
+                <FieldLabel htmlFor="password">Senha</FieldLabel>
+                <Input id="password" type="password" required minLength={6} value={password}
+                  onChange={(e) => setPassword(e.target.value)} aria-invalid={!!error || undefined}
+                  autoComplete={mode === "login" ? "current-password" : "new-password"}
+                  className="min-h-[48px]" />
+                {error && <FieldError role="alert">{error}</FieldError>}
+              </Field>
 
-            {error && (
-              <p role="alert" className="text-sm text-red-500">{error}</p>
-            )}
-
-            <Button type="submit" disabled={loading} className="w-full min-h-[48px] bg-foreground text-background hover:bg-foreground/90">
-              {loading ? "Aguarde..." : mode === "login" ? "Entrar" : "Criar conta"}
-            </Button>
+              <Button type="submit" disabled={loading} className="w-full min-h-[48px]">
+                {loading ? (
+                  <>
+                    <Spinner /> Aguarde...
+                  </>
+                ) : mode === "login" ? (
+                  "Entrar"
+                ) : (
+                  "Criar conta"
+                )}
+              </Button>
+            </FieldGroup>
           </form>
 
           <p className="text-center text-sm text-muted-foreground">

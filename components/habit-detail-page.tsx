@@ -1,11 +1,13 @@
 "use client"
 
+import { ConfirmDialog } from "@/components/confirm-dialog"
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
+
 import { useMemo, useState } from "react"
 import { ArrowLeft, Check, ChevronLeft, ChevronRight, Pencil, Trash2, X, Shield } from "lucide-react"
 import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from "recharts"
-import { AppShell, BottomSheet, IconButton, PageHeader } from "@/components/app-shell"
+import { AppShell, IconButton, PageHeader } from "@/components/app-shell"
 import { ChartContainer, ChartTooltip, ChartTooltipContent, type ChartConfig } from "@/components/ui/chart"
-import { Button } from "@/components/ui/button"
 import { addDays, toDateKey } from "@/lib/dates"
 import { bestStreak, currentStreak, habitRate, lastDays, offKind, toggleDay } from "@/lib/stats"
 import type { Habit } from "@/lib/types"
@@ -112,33 +114,29 @@ export function HabitDetailPage({ habit, onUpdate, onBack, onDelete }: HabitDeta
         <p className="mb-3 text-xs text-muted-foreground">
           Nesses dias o hábito descansa: não conta e não quebra a sequência.
         </p>
-        <div className="grid grid-cols-7 gap-1.5">
-          {["D", "S", "T", "Q", "Q", "S", "S"].map((d, i) => {
-            const on = habit.restDays?.includes(i)
-            return (
-              <button
-                key={i}
-                type="button"
-                aria-pressed={on}
-                aria-label={`Folga ${["domingo", "segunda", "terça", "quarta", "quinta", "sexta", "sábado"][i]}`}
-                onClick={() => {
-                  const set = new Set(habit.restDays ?? [])
-                  if (on) set.delete(i)
-                  else set.add(i)
-                  const next = { ...habit, restDays: [...set].sort() }
-                  if (!next.restDays.length) delete (next as { restDays?: number[] }).restDays
-                  onUpdate(next)
-                }}
-                className={cn(
-                  "pressable h-10 rounded-xl text-sm font-semibold",
-                  on ? "bg-foreground text-background" : "bg-muted text-muted-foreground",
-                )}
-              >
-                {d}
-              </button>
-            )
-          })}
-        </div>
+        <ToggleGroup
+          type="multiple"
+          variant="outline"
+          value={(habit.restDays ?? []).map(String)}
+          onValueChange={(v) => {
+            const days = v.map(Number).sort()
+            const next = { ...habit, restDays: days }
+            if (!days.length) delete (next as { restDays?: number[] }).restDays
+            onUpdate(next)
+          }}
+          className="w-full"
+        >
+          {["D", "S", "T", "Q", "Q", "S", "S"].map((d, i) => (
+            <ToggleGroupItem
+              key={i}
+              value={String(i)}
+              aria-label={`Folga ${["domingo", "segunda", "terça", "quarta", "quinta", "sexta", "sábado"][i]}`}
+              className="h-10 flex-1 font-semibold data-[state=on]:bg-foreground data-[state=on]:text-background"
+            >
+              {d}
+            </ToggleGroupItem>
+          ))}
+        </ToggleGroup>
         <p className="mt-3 flex items-start gap-2 text-xs text-muted-foreground">
           <Shield className="mt-0.5 h-3.5 w-3.5 shrink-0 text-sky-500" />
           Coringa: 1 por semana. Num dia ruim, toque no dia marcado como não feito para trocar pelo coringa e manter a
@@ -237,21 +235,14 @@ export function HabitDetailPage({ habit, onUpdate, onBack, onDelete }: HabitDeta
 
       </div>
 
-      <BottomSheet open={confirmDelete} onClose={() => setConfirmDelete(false)}>
-        <h2 className="text-lg font-semibold">Excluir &quot;{habit.name}&quot;?</h2>
-        <p className="mt-1 text-sm text-muted-foreground">Todo o histórico deste hábito será apagado.</p>
-        <div className="mt-5 flex flex-col gap-2 pb-2">
-          <Button
-            className="h-12 rounded-2xl bg-red-600 text-base hover:bg-red-700"
-            onClick={() => onDelete?.(habit.id)}
-          >
-            Excluir hábito
-          </Button>
-          <Button variant="ghost" className="h-12 rounded-2xl text-base" onClick={() => setConfirmDelete(false)}>
-            Cancelar
-          </Button>
-        </div>
-      </BottomSheet>
+      <ConfirmDialog
+        open={confirmDelete}
+        onOpenChange={setConfirmDelete}
+        title={`Excluir “${habit.name}”?`}
+        description="Todo o histórico deste hábito será apagado. Não dá para desfazer."
+        confirm="Excluir hábito"
+        onConfirm={() => onDelete?.(habit.id)}
+      />
     </AppShell>
   )
 }

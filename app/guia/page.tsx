@@ -8,7 +8,6 @@ import {
   BedDouble,
   Bell,
   BookOpen,
-  ChevronDown,
   CircleCheck,
   Flag,
   Flame,
@@ -23,6 +22,7 @@ import {
   Sparkles,
   UserRound,
 } from "lucide-react"
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
 import { AppShell, IconButton, PageHeader } from "@/components/app-shell"
 import { Onboarding } from "@/components/onboarding"
 
@@ -454,37 +454,30 @@ export default function GuidePage() {
         </span>
       </button>
 
-      <div className="mt-5 space-y-2">
-        {SECTIONS.map(({ id, icon: Icon, title, summary, body }) => {
-          const isOpen = open === id
-          return (
-            <section key={id} className="overflow-hidden rounded-3xl border border-border bg-card">
-              <button
-                type="button"
-                aria-expanded={isOpen}
-                onClick={() => setOpen(isOpen ? null : id)}
-                className="flex w-full items-center gap-3 px-5 py-4 text-left"
-              >
-                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-muted">
-                  <Icon className="h-[18px] w-[18px]" />
-                </span>
-                <span className="min-w-0 flex-1">
-                  <span className="block text-[15px] font-semibold">{title}</span>
-                  <span className="block truncate text-xs text-muted-foreground">{summary}</span>
-                </span>
-                <ChevronDown
-                  className={`h-4 w-4 shrink-0 text-muted-foreground transition-transform duration-200 ${isOpen ? "rotate-180" : ""}`}
-                />
-              </button>
-              {isOpen && (
-                <div className="guide-body px-5 pb-5 text-sm leading-relaxed text-muted-foreground animate-in fade-in slide-in-from-top-1 duration-200">
-                  {body}
-                </div>
-              )}
-            </section>
-          )
-        })}
-      </div>
+      <Accordion
+        type="single"
+        collapsible
+        value={open ?? ""}
+        onValueChange={(v) => setOpen(v || null)}
+        className="mt-5 space-y-2"
+      >
+        {SECTIONS.map(({ id, icon: Icon, title, summary, body }) => (
+          <AccordionItem key={id} value={id} className="overflow-hidden rounded-3xl border bg-card last:border-b">
+            <AccordionTrigger className="items-center gap-3 px-5 py-4 hover:no-underline">
+              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-muted">
+                <Icon className="h-[18px] w-[18px]" />
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="block text-[15px] font-semibold">{title}</span>
+                <span className="block truncate text-xs font-normal text-muted-foreground">{summary}</span>
+              </span>
+            </AccordionTrigger>
+            <AccordionContent className="guide-body px-5 pb-5 text-sm leading-relaxed text-muted-foreground">
+              {body}
+            </AccordionContent>
+          </AccordionItem>
+        ))}
+      </Accordion>
 
       <p className="mt-8 text-center text-xs text-muted-foreground">
         Mais sobre o método em{" "}

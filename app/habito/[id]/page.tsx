@@ -1,5 +1,6 @@
 "use client"
 
+import { PageSkeleton } from "@/components/page-skeleton"
 import { useParams, useRouter } from "next/navigation"
 import Link from "next/link"
 import dynamic from "next/dynamic"
@@ -8,7 +9,7 @@ import { Button } from "@/components/ui/button"
 
 const HabitDetailPage = dynamic(
   () => import("@/components/habit-detail-page").then((m) => m.HabitDetailPage),
-  { ssr: false, loading: () => <div className="min-h-screen bg-background" aria-busy="true" /> },
+  { ssr: false, loading: () => <PageSkeleton /> },
 )
 
 export default function HabitRoute() {
@@ -16,7 +17,7 @@ export default function HabitRoute() {
   const router = useRouter()
   const { habits, ready, updateHabit, deleteHabit } = useHabits()
 
-  if (!ready) return <div className="min-h-screen bg-background" aria-busy="true" />
+  if (!ready) return <PageSkeleton />
 
   const habit = habits.find((h) => h.id === id)
   if (!habit) {
