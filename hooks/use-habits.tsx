@@ -24,6 +24,8 @@ export interface Profile {
   weekFocus?: { week: string; text: string }
   /** domingo (YYYY-MM-DD) da última semana revisada */
   lastReview?: string
+  /** quadro de visão ligado (aba opcional, desligada por padrão) */
+  visionEnabled?: boolean
   /** meta de sono por noite, em horas (padrão 7) */
   sleepGoal?: number
   /** chave da caixa de entrada do sono (app Atalhos -> /api/sono) */
@@ -327,6 +329,7 @@ export function HabitsProvider({ children }: { children: React.ReactNode }) {
       if (next.weekFocus?.text?.trim())
         clean.weekFocus = { week: next.weekFocus.week, text: next.weekFocus.text.trim().slice(0, 80) }
       if (next.lastReview) clean.lastReview = next.lastReview
+      if (next.visionEnabled) clean.visionEnabled = true
       if (next.sleepGoal && next.sleepGoal >= 4 && next.sleepGoal <= 12)
         clean.sleepGoal = Math.round(next.sleepGoal * 4) / 4
       setProfileState(clean)

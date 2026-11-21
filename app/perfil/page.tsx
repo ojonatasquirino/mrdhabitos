@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
-import { ArrowLeft, BookOpen, Camera, ChevronRight, LogOut, Moon, Sun, Trash2 } from "lucide-react"
+import { ArrowLeft, BookOpen, Camera, ChevronRight, Images, LogOut, Moon, Sun, Trash2 } from "lucide-react"
 import { AppShell, IconButton, PageHeader } from "@/components/app-shell"
 import { Avatar, imageToAvatar } from "@/components/avatar"
 import { Button } from "@/components/ui/button"
@@ -105,7 +105,26 @@ export default function ProfilePage() {
       </Button>
       {msg && <p className="mt-3 text-center text-sm text-muted-foreground">{msg}</p>}
 
-      <div className="mt-8 divide-y divide-border overflow-hidden rounded-3xl border border-border">
+      <label className="mt-8 flex items-center gap-4 rounded-3xl border border-border p-5">
+        <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-muted">
+          <Images className="h-5 w-5" />
+        </span>
+        <span className="min-w-0 flex-1">
+          <span className="block text-sm font-semibold">Quadro de visão</span>
+          <span className="block text-xs leading-relaxed text-muted-foreground">
+            Fotos e frases do futuro que você quer. Adiciona a aba Visão na barra.
+          </span>
+        </span>
+        <input
+          type="checkbox"
+          role="switch"
+          checked={!!profile.visionEnabled}
+          onChange={(e) => setProfile({ ...profile, visionEnabled: e.target.checked })}
+          className="h-6 w-6 shrink-0 accent-foreground"
+        />
+      </label>
+
+      <div className="mt-4 divide-y divide-border overflow-hidden rounded-3xl border border-border">
         <Link href="/guia" className="flex w-full items-center gap-3 px-5 py-4 text-left">
           <BookOpen className="h-5 w-5" />
           <span className="flex-1 text-sm font-medium">Guia de uso</span>

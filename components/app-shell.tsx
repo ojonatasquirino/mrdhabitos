@@ -3,7 +3,8 @@
 import { useEffect, useRef, useState } from "react"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
-import { BarChart3, Flag, Home, Plus } from "lucide-react"
+import { BarChart3, Flag, Home, Images, Plus } from "lucide-react"
+import { useHabits } from "@/hooks/use-habits"
 import { cn } from "@/lib/utils"
 import { DesktopSidebar } from "@/components/desktop-sidebar"
 import { PaceToast } from "@/components/pace-toast"
@@ -13,14 +14,21 @@ import { PaceToast } from "@/components/pace-toast"
  * Desktop (>= 1024px, prefixo lg:): menu lateral fixo e conteúdo largo.
  * Regra: estilos do mobile não são editados; o desktop só acrescenta classes lg:.
  */
-const TABS = [
+const BASE_TABS = [
   { href: "/", label: "Hoje", Icon: Home },
   { href: "/projetos", label: "Projetos", Icon: Flag },
   { href: "/analise", label: "Análise", Icon: BarChart3 },
-] as const
+]
+const VISION_TAB = { href: "/visao", label: "Visão", Icon: Images }
 
-const tabIndex = (pathname: string) =>
-  TABS.findIndex((t) => (t.href === "/" ? pathname === "/" : pathname.startsWith(t.href)))
+/** abas da barra: "Visão" entra como 3ª quando o quadro de visão está ligado */
+function useTabs() {
+  const { profile } = useHabits()
+  return profile.visionEnabled ? [BASE_TABS[0], BASE_TABS[1], VISION_TAB, BASE_TABS[2]] : BASE_TABS
+}
+
+const tabIndexIn = (tabs: { href: string }[], pathname: string) =>
+  tabs.findIndex((t) => (t.href === "/" ? pathname === "/" : pathname.startsWith(t.href)))
 
 // Sobrevive à troca de tela (cada tela monta o próprio AppShell):
 // guarda a aba anterior para a pílula deslizar dela até a nova, e a direção da transição.
@@ -48,7 +56,8 @@ export function AppShell({
 
   // deslizar o dedo para os lados troca de aba, como no iPhone
   const touch = useRef<{ x: number; y: number; t: number } | null>(null)
-  const current = tabIndex(pathname)
+  const TABS = useTabs()
+  const current = tabIndexIn(TABS, pathname)
   const onTouchStart = (e: React.TouchEvent) => {
     const p = e.touches[0]
     touch.current = { x: p.clientX, y: p.clientY, t: Date.now() }
@@ -56,7 +65,8 @@ export function AppShell({
   const onTouchEnd = (e: React.TouchEvent) => {
     const start = touch.current
     touch.current = null
-    if (!start || current < 0 || !nav) return
+    // no quadro de visão o arrasto move o quadro, não troca de aba
+    if (!start || current < 0 || !nav || pathname.startsWith("/visao")) return
     const p = e.changedTouches[0]
     const dx = p.clientX - start.x
     const dy = p.clientY - start.y
@@ -95,7 +105,8 @@ export function AppShell({
 
 function BottomNav({ pathname }: { pathname: string }) {
   const router = useRouter()
-  const current = tabIndex(pathname)
+  const TABS = useTabs()
+  const current = tabIndexIn(TABS, pathname)
   // posição da pílula (em abas); começa na aba anterior e desliza até a atual
   const [pos, setPos] = useState<number>(lastTab ?? Math.max(0, current))
   const [drag, setDrag] = useState<number | null>(null)
@@ -181,7 +192,7 @@ function BottomNav({ pathname }: { pathname: string }) {
                 drag == null && "transition-transform duration-[450ms] ease-[cubic-bezier(.3,1.35,.5,1)]",
               )}
               style={{
-                width: "calc((100% - 12px) / 3)",
+                width: `calc((100% - 12px) / ${TABS.length})`,
                 transform: `translateX(${shown * 100}%) scale(${drag != null ? 1.08 : moving ? 1.05 : 1}, ${drag != null ? 1.04 : 1})`,
               }}
             />
