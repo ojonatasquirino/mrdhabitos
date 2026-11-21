@@ -1,24 +1,10 @@
 "use client"
 
 import { useCallback, useEffect, useRef, useState } from "react"
-import {
-  ArrowDownToLine,
-  ArrowUpToLine,
-  Bold,
-  Copy,
-  ImagePlus,
-  Italic,
-  Maximize2,
-  MessageCircle,
-  Minimize2,
-  Scan,
-  Trash2,
-  Type,
-  X,
-} from "lucide-react"
+import { ArrowDownToLine, ArrowUpToLine, ImagePlus, Maximize2, MessageCircle, Minimize2, Scan, Trash2, X } from "lucide-react"
 import { BottomSheet } from "@/components/ui-kit"
 import { useVision } from "@/hooks/use-vision"
-import { FONT_FAMILY, FONT_LABEL, SIZES, compressImage, type VisionFont, type VisionItem } from "@/lib/vision"
+import { compressImage, type VisionItem } from "@/lib/vision"
 import { cn } from "@/lib/utils"
 
 interface View {
@@ -37,10 +23,9 @@ const clampS = (s: number) => Math.min(3, Math.max(0.2, s))
 
 /** Quadro livre estilo moodboard: arrastar, pinçar para zoom, redimensionar mantendo a proporção. */
 export function VisionBoard() {
-  const { ready, items, images, update, addImage, removeImage } = useVision()
+  const { ready, items, thumbs, full, needFull, update, addImage, removeImage } = useVision()
   const [view, setView] = useState<View>({ x: 0, y: 0, s: 1 })
   const [selected, setSelected] = useState<string | null>(null)
-  const [editing, setEditing] = useState<string | null>(null)
   const [showComment, setShowComment] = useState<string | null>(null)
   const [commentDraft, setCommentDraft] = useState<{ id: string; text: string } | null>(null)
   const [presenting, setPresenting] = useState(false)
@@ -53,11 +38,17 @@ export function VisionBoard() {
   const fitted = useRef(false)
 
   const sel = items.find((i) => i.id === selected)
+  /** miniatura no quadro; foto cheia quando ampliada ou na apresentação */
+  const src = (id: string) => full[id] ?? thumbs[id]
+  useEffect(() => {
+    if (!presenting && view.s < 1.4) return
+    items.forEach((i) => i.imageId && needFull(i.imageId))
+  }, [presenting, view.s, items, needFull])
   const patch = useCallback(
     (id: string, p: Partial<VisionItem>) => update((list) => list.map((i) => (i.id === id ? { ...i, ...p } : i))),
     [update],
   )
-  const heightOf = (i: VisionItem) => (i.type === "image" ? i.w / (i.ratio || 1) : (i.size ?? 32) * 1.4)
+  const heightOf = (i: VisionItem) => i.w / (i.ratio || 1)
 
   /** enquadra todos os itens na tela */
   const fit = useCallback(() => {
@@ -128,24 +119,6 @@ export function VisionBoard() {
     setBusy(false)
   }
 
-  const addText = (below?: VisionItem) => {
-    const c = center()
-    const item: VisionItem = {
-      id: crypto.randomUUID(),
-      type: "text",
-      text: "",
-      font: "serif",
-      size: below ? 20 : 32,
-      w: below ? below.w : 280 / view.s,
-      x: below ? below.x : c.x - 140 / view.s,
-      y: below ? below.y + heightOf(below) + 10 : c.y - 20,
-      z: topZ(),
-    }
-    update((list) => [...list, item])
-    setSelected(item.id)
-    setEditing(item.id)
-  }
-
   const remove = (id: string) => {
     const it = items.find((i) => i.id === id)
     update((list) => list.filter((i) => i.id !== id))
@@ -156,7 +129,7 @@ export function VisionBoard() {
   /* ---------------- gestos ---------------- */
 
   const startItem = (e: React.PointerEvent, it: VisionItem, mode: "move" | "resize") => {
-    if (presenting || editing === it.id) return
+    if (presenting) return
     e.stopPropagation()
     ;(e.currentTarget as Element).setPointerCapture?.(e.pointerId)
     setSelected(it.id)
@@ -228,7 +201,6 @@ export function VisionBoard() {
       if (g.mode === "move" && !g.moved) {
         const it = items.find((i) => i.id === g.id)
         const now = Date.now()
-        if (it?.type === "text" && lastTap.current?.id === it.id && now - lastTap.current.t < 350) setEditing(it.id)
         if (it?.type === "image" && it.comment) setShowComment((c) => (c === it.id ? null : it.id))
         lastTap.current = { id: g.id, t: now }
       }
@@ -282,17 +254,16 @@ export function VisionBoard() {
                 key={it.id}
                 onPointerDown={(e) => startItem(e, it, "move")}
                 className="absolute"
-                style={{ left: it.x, top: it.y, width: it.w, zIndex: showComment === it.id ? 100000 : it.z }}
+                style={{ left: it.x, top: it.y, width: it.w, zIndex: showComment === it.id || isSel ? 100000 : it.z }}
               >
-                {it.type === "image" ? (
-                  <div className="relative" style={{ height: it.w / (it.ratio || 1) }}>
-                    {images[it.imageId!] ? (
+                <div className="relative" style={{ height: it.w / (it.ratio || 1) }}>
+                    {src(it.imageId!) ? (
                       // eslint-disable-next-line @next/next/no-img-element
                       <img
-                        src={images[it.imageId!]}
+                        src={src(it.imageId!)}
                         alt=""
                         draggable={false}
-                        className="pointer-events-none h-full w-full rounded-2xl object-cover shadow-[0_8px_30px_rgba(0,0,0,0.12)]"
+                        className={cn("pointer-events-none h-full w-full rounded-2xl object-cover transition-shadow", isSel ? "shadow-[0_16px_40px_rgba(0,0,0,0.28)]" : "shadow-[0_8px_30px_rgba(0,0,0,0.12)]")}
                       />
                     ) : (
                       <div className="h-full w-full animate-pulse rounded-2xl bg-muted" />
@@ -314,41 +285,14 @@ export function VisionBoard() {
                       </div>
                     )}
                   </div>
-                ) : editing === it.id ? (
-                  <textarea
-                    autoFocus
-                    defaultValue={it.text}
-                    onPointerDown={(e) => e.stopPropagation()}
-                    onBlur={(e) => {
-                      const text = e.target.value.trim()
-                      setEditing(null)
-                      if (!text) remove(it.id)
-                      else patch(it.id, { text })
-                    }}
-                    rows={2}
-                    placeholder="Escreva aqui"
-                    className="w-full resize-none rounded-lg bg-background/80 p-1 outline-none ring-2 ring-sky-500"
-                    style={fontStyle(it)}
-                  />
-                ) : (
-                  <p className="whitespace-pre-wrap break-words leading-tight" style={fontStyle(it)}>
-                    {it.text}
-                  </p>
-                )}
 
-                {isSel && editing !== it.id && (
-                  <>
-                    <span
-                      className="pointer-events-none absolute -inset-1 rounded-[1.1rem] border-sky-500"
-                      style={{ borderWidth: 2 / view.s }}
-                    />
-                    <span
-                      onPointerDown={(e) => startItem(e, it, "resize")}
-                      aria-label="Redimensionar"
-                      className="absolute -bottom-3 -right-3 flex cursor-nwse-resize items-center justify-center rounded-full border-sky-500 bg-white shadow"
-                      style={{ width: 26 / view.s, height: 26 / view.s, borderWidth: 2 / view.s }}
-                    />
-                  </>
+                {isSel && (
+                  <span
+                    onPointerDown={(e) => startItem(e, it, "resize")}
+                    aria-label="Redimensionar"
+                    className="absolute -bottom-2.5 -right-2.5 cursor-nwse-resize rounded-full bg-white shadow-[0_2px_10px_rgba(0,0,0,0.35)] ring-1 ring-black/10"
+                    style={{ width: 24 / view.s, height: 24 / view.s }}
+                  />
                 )}
               </div>
             )
@@ -362,7 +306,7 @@ export function VisionBoard() {
           </span>
           <p className="mt-4 text-lg font-semibold">Visualize o futuro que você está construindo</p>
           <p className="mt-1 text-sm text-muted-foreground">
-            Fotos da família, do setup, dos lugares e das conquistas. Arraste, aumente e escreva por cima.
+            Fotos da família, do setup, dos lugares e das conquistas. Arraste e aumente como quiser.
           </p>
         </div>
       )}
@@ -406,13 +350,6 @@ export function VisionBoard() {
         >
           <ImagePlus className="h-4 w-4" /> {busy ? "Enviando..." : "Imagem"}
         </button>
-        <button
-          type="button"
-          onClick={() => addText()}
-          className="glass pressable flex h-10 items-center gap-2 rounded-full px-4 text-sm font-semibold"
-        >
-          <Type className="h-4 w-4" /> Texto
-        </button>
         <input
           ref={fileRef}
           type="file"
@@ -427,59 +364,17 @@ export function VisionBoard() {
       </div>
 
       {/* barra do item selecionado */}
-      {sel && !editing && (
+      {sel && (
         <div className="absolute inset-x-3 bottom-3 flex justify-center">
           <div className="glass flex max-w-full items-center gap-1 overflow-x-auto rounded-full p-1.5 animate-in fade-in slide-in-from-bottom-2 duration-200">
-            {sel.type === "text" ? (
-              <>
-                <select
-                  value={sel.font ?? "serif"}
-                  onChange={(e) => patch(sel.id, { font: e.target.value as VisionFont })}
-                  className="h-9 rounded-full bg-muted px-3 text-sm font-medium outline-none"
-                  aria-label="Fonte"
-                >
-                  {(Object.keys(FONT_LABEL) as VisionFont[]).map((f) => (
-                    <option key={f} value={f}>
-                      {FONT_LABEL[f]}
-                    </option>
-                  ))}
-                </select>
-                {SIZES.map((sz) => (
-                  <ToolBtn
-                    key={sz.px}
-                    label={`Tamanho ${sz.label}`}
-                    active={(sel.size ?? 32) === sz.px}
-                    onClick={() => patch(sel.id, { size: sz.px })}
-                    flat
-                  >
-                    <span className="text-xs font-bold">{sz.label}</span>
-                  </ToolBtn>
-                ))}
-                <ToolBtn label="Negrito" active={sel.bold} onClick={() => patch(sel.id, { bold: !sel.bold })} flat>
-                  <Bold className="h-4 w-4" />
-                </ToolBtn>
-                <ToolBtn label="Itálico" active={sel.italic} onClick={() => patch(sel.id, { italic: !sel.italic })} flat>
-                  <Italic className="h-4 w-4" />
-                </ToolBtn>
-                <ToolBtn label="Editar texto" onClick={() => setEditing(sel.id)} flat>
-                  <Type className="h-4 w-4" />
-                </ToolBtn>
-              </>
-            ) : (
-              <>
-                <ToolBtn
-                  label="Comentário"
-                  onClick={() => setCommentDraft({ id: sel.id, text: sel.comment ?? "" })}
-                  active={!!sel.comment}
-                  flat
-                >
-                  <MessageCircle className="h-4 w-4" />
-                </ToolBtn>
-                <ToolBtn label="Texto abaixo" onClick={() => addText(sel)} flat>
-                  <Type className="h-4 w-4" />
-                </ToolBtn>
-              </>
-            )}
+            <ToolBtn
+              label="Comentário"
+              onClick={() => setCommentDraft({ id: sel.id, text: sel.comment ?? "" })}
+              active={!!sel.comment}
+              flat
+            >
+              <MessageCircle className="h-4 w-4" />
+            </ToolBtn>
             <ToolBtn label="Trazer para frente" onClick={() => patch(sel.id, { z: topZ() })} flat>
               <ArrowUpToLine className="h-4 w-4" />
             </ToolBtn>
@@ -489,17 +384,6 @@ export function VisionBoard() {
               flat
             >
               <ArrowDownToLine className="h-4 w-4" />
-            </ToolBtn>
-            <ToolBtn
-              label="Duplicar"
-              onClick={() => {
-                const copy = { ...sel, id: crypto.randomUUID(), x: sel.x + 24, y: sel.y + 24, z: topZ() }
-                update((l) => [...l, copy])
-                setSelected(copy.id)
-              }}
-              flat
-            >
-              <Copy className="h-4 w-4" />
             </ToolBtn>
             <ToolBtn label="Apagar" onClick={() => remove(sel.id)} flat danger>
               <Trash2 className="h-4 w-4" />
@@ -547,15 +431,6 @@ export function VisionBoard() {
       </BottomSheet>
     </div>
   )
-}
-
-function fontStyle(it: VisionItem): React.CSSProperties {
-  return {
-    fontFamily: FONT_FAMILY[it.font ?? "serif"],
-    fontSize: it.size ?? 32,
-    fontWeight: it.bold ? 700 : 500,
-    fontStyle: it.italic ? "italic" : "normal",
-  }
 }
 
 function ToolBtn({

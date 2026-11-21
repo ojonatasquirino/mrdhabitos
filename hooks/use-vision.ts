@@ -1,68 +1,99 @@
 "use client"
 
 import { useCallback, useEffect, useRef, useState } from "react"
-import { collection, deleteDoc, doc, getDoc, getDocs, setDoc } from "firebase/firestore"
+import { deleteDoc, doc, getDoc, setDoc } from "firebase/firestore"
 import { firebaseDb } from "@/lib/firebase"
 import { useAuth } from "@/hooks/use-auth"
-import type { VisionItem } from "@/lib/vision"
+import { idbDel, idbGet, idbSet } from "@/lib/idb"
+import { makeThumb, type VisionItem } from "@/lib/vision"
 
 const LOCAL_ITEMS = "mrd-vision"
-const LOCAL_IMAGES = "mrd-vision-images"
-
-const readLocal = <T,>(key: string, fallback: T): T => {
-  try {
-    return JSON.parse(localStorage.getItem(key) ?? "") as T
-  } catch {
-    return fallback
-  }
-}
 
 /**
- * Quadro de visão no Firestore "em partes":
- * users/{uid}/vision/board guarda só a posição dos itens (leve);
- * users/{uid}/visionImages/{id} guarda cada foto comprimida (até ~900 KB cada).
- * Sem conta (modo local), tudo fica no navegador.
+ * Quadro de visão, leve:
+ * - users/{uid}/vision/board: só as posições (1 leitura ao abrir)
+ * - users/{uid}/visionThumbs/{id}: miniatura (~20 KB) usada no quadro
+ * - users/{uid}/visionImages/{id}: foto cheia, baixada só no zoom ou na apresentação
+ * Tudo fica em cache no aparelho (IndexedDB): reabrir não gasta leituras e funciona offline.
  */
 export function useVision() {
   const { user, ready: authReady, enabled } = useAuth()
   const uid = enabled ? user?.uid : undefined
   const [items, setItems] = useState<VisionItem[]>([])
-  const [images, setImages] = useState<Record<string, string>>({})
+  const [thumbs, setThumbs] = useState<Record<string, string>>({})
+  const [full, setFull] = useState<Record<string, string>>({})
   const [ready, setReady] = useState(false)
   const saveTimer = useRef<number | undefined>(undefined)
+  const pendingFull = useRef(new Set<string>())
+
+  const fetchDoc = useCallback(
+    async (col: "visionThumbs" | "visionImages", id: string) => {
+      if (!uid) return undefined
+      const snap = await getDoc(doc(firebaseDb(), "users", uid, col, id)).catch(() => null)
+      return snap?.data()?.data as string | undefined
+    },
+    [uid],
+  )
+
+  /** miniatura: cache -> nuvem -> (fotos antigas) gera a partir da foto cheia e guarda */
+  const loadThumb = useCallback(
+    async (id: string) => {
+      let t = await idbGet(`t:${id}`)
+      if (!t) {
+        t = await fetchDoc("visionThumbs", id)
+        if (!t) {
+          const f = (await idbGet(`f:${id}`)) ?? (await fetchDoc("visionImages", id))
+          if (!f) return
+          idbSet(`f:${id}`, f)
+          t = await makeThumb(f)
+          if (uid) setDoc(doc(firebaseDb(), "users", uid, "visionThumbs", id), { data: t }).catch(console.error)
+        }
+        idbSet(`t:${id}`, t)
+      }
+      setThumbs((m) => ({ ...m, [id]: t! }))
+    },
+    [fetchDoc, uid],
+  )
 
   useEffect(() => {
     if (!authReady) return
     let cancelled = false
     ;(async () => {
+      let list: VisionItem[] = []
       if (!uid) {
-        setItems(readLocal<VisionItem[]>(LOCAL_ITEMS, []))
-        setImages(readLocal<Record<string, string>>(LOCAL_IMAGES, {}))
-        setReady(true)
-        return
+        try {
+          list = JSON.parse(localStorage.getItem(LOCAL_ITEMS) ?? "[]")
+        } catch {}
+      } else {
+        const snap = await getDoc(doc(firebaseDb(), "users", uid, "vision", "board")).catch(() => null)
+        list = (snap?.data()?.items as VisionItem[]) ?? []
       }
-      try {
-        const db = firebaseDb()
-        const [board, imgs] = await Promise.all([
-          getDoc(doc(db, "users", uid, "vision", "board")),
-          getDocs(collection(db, "users", uid, "visionImages")),
-        ])
-        if (cancelled) return
-        setItems((board.data()?.items as VisionItem[]) ?? [])
-        const map: Record<string, string> = {}
-        imgs.forEach((d) => (map[d.id] = d.data().data as string))
-        setImages(map)
-      } catch (e) {
-        console.error(e)
-      }
-      if (!cancelled) setReady(true)
+      list = list.filter((i) => i.type === "image")
+      if (cancelled) return
+      setItems(list)
+      setReady(true)
+      await Promise.all(list.map((i) => (i.imageId ? loadThumb(i.imageId) : null)))
     })()
     return () => {
       cancelled = true
     }
-  }, [authReady, uid])
+  }, [authReady, uid, loadThumb])
 
-  /** salva as posições com um pequeno atraso (arrastar gera muitas mudanças) */
+  /** foto cheia sob demanda (zoom/apresentação), com cache */
+  const needFull = useCallback(
+    async (id: string) => {
+      if (full[id] || pendingFull.current.has(id)) return
+      pendingFull.current.add(id)
+      const f = (await idbGet(`f:${id}`)) ?? (await fetchDoc("visionImages", id))
+      if (f) {
+        idbSet(`f:${id}`, f)
+        setFull((m) => ({ ...m, [id]: f }))
+      }
+      pendingFull.current.delete(id)
+    },
+    [full, fetchDoc],
+  )
+
   const persistItems = useCallback(
     (next: VisionItem[]) => {
       window.clearTimeout(saveTimer.current)
@@ -92,37 +123,39 @@ export function useVision() {
 
   const addImage = useCallback(
     async (id: string, data: string) => {
-      setImages((m) => ({ ...m, [id]: data }))
-      if (!uid) {
-        try {
-          localStorage.setItem(LOCAL_IMAGES, JSON.stringify({ ...readLocal(LOCAL_IMAGES, {}), [id]: data }))
-        } catch {}
-        return
+      const t = await makeThumb(data)
+      setThumbs((m) => ({ ...m, [id]: t }))
+      setFull((m) => ({ ...m, [id]: data }))
+      idbSet(`t:${id}`, t)
+      idbSet(`f:${id}`, data)
+      if (uid) {
+        const db = firebaseDb()
+        await Promise.all([
+          setDoc(doc(db, "users", uid, "visionImages", id), { data }),
+          setDoc(doc(db, "users", uid, "visionThumbs", id), { data: t }),
+        ])
       }
-      await setDoc(doc(firebaseDb(), "users", uid, "visionImages", id), { data })
     },
     [uid],
   )
 
   const removeImage = useCallback(
     (id: string) => {
-      setImages((m) => {
+      setThumbs((m) => {
         const n = { ...m }
         delete n[id]
         return n
       })
-      if (!uid) {
-        const all = readLocal<Record<string, string>>(LOCAL_IMAGES, {})
-        delete all[id]
-        try {
-          localStorage.setItem(LOCAL_IMAGES, JSON.stringify(all))
-        } catch {}
-        return
+      idbDel(`t:${id}`)
+      idbDel(`f:${id}`)
+      if (uid) {
+        const db = firebaseDb()
+        deleteDoc(doc(db, "users", uid, "visionImages", id)).catch(console.error)
+        deleteDoc(doc(db, "users", uid, "visionThumbs", id)).catch(console.error)
       }
-      deleteDoc(doc(firebaseDb(), "users", uid, "visionImages", id)).catch(console.error)
     },
     [uid],
   )
 
-  return { ready, items, images, update, addImage, removeImage }
+  return { ready, items, thumbs, full, needFull, update, addImage, removeImage }
 }

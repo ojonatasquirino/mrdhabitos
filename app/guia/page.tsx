@@ -259,7 +259,7 @@ const SECTIONS: Section[] = [
     id: "visao",
     icon: Telescope,
     title: "Bônus: Quadro de visão",
-    summary: "Fotos e frases do futuro que você está construindo",
+    summary: "Fotos do futuro que você está construindo",
     body: (
       <>
         <p>
@@ -269,16 +269,12 @@ const SECTIONS: Section[] = [
         <ul>
           <li>
             <b>Imagem</b> adiciona fotos (família, setup, lugares, conquistas). Elas entram com cantos arredondados e
-            são comprimidas no aparelho, sem perder qualidade visível.
+            são comprimidas no aparelho. O quadro abre com miniaturas leves e carrega a foto cheia só no zoom ou na apresentação; tudo fica guardado no aparelho e abre até offline.
           </li>
           <li>Arraste para mover. Puxe a bolinha do canto para aumentar ou diminuir: a proporção da foto se mantém.</li>
           <li>Arraste o fundo para navegar e use dois dedos (ou Ctrl + rolagem no computador) para dar zoom.</li>
-          <li>
-            <b>Texto</b> cria uma frase solta. Com uma foto selecionada, <b>Texto abaixo</b> cria a legenda. Escolha a
-            fonte (Sans, Serif, Mono, Manuscrita), o tamanho, negrito e itálico. Toque duas vezes para editar.
-          </li>
           <li>O balão adiciona um comentário à foto, que aparece ao tocar nela.</li>
-          <li>Também dá para trazer para frente, mandar para trás, duplicar e apagar.</li>
+          <li>Com a foto selecionada, dá para trazer para frente, mandar para trás e apagar.</li>
           <li>
             <b>Apresentar</b> mostra o quadro em tela cheia, sem botões. O ícone de enquadrar centraliza tudo.
           </li>
