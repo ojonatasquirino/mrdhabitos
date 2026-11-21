@@ -72,7 +72,7 @@ export function Onboarding({
     },
     {
       title: "Bônus: visualize o futuro",
-      body: "Ligue o Quadro de visão no Perfil e monte um mural com fotos e frases do que você está construindo: família, casa, conquistas. É opcional.",
+      body: "Ligue o Quadro de visão no Perfil e monte um mural com fotos do que você está construindo: família, casa, conquistas. É opcional.",
       visual: <VisionVisual />,
     },
     {

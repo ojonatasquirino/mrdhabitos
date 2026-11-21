@@ -63,3 +63,17 @@ export async function compressImage(file: File): Promise<{ data: string; ratio: 
   }
   return { data, ratio: w / h }
 }
+
+/** Miniatura leve (lado maior 480px) para abrir o quadro rápido; a foto cheia só carrega quando precisa. */
+export async function makeThumb(src: string): Promise<string> {
+  const img = new Image()
+  img.src = src
+  await img.decode()
+  const scale = Math.min(1, 480 / Math.max(img.naturalWidth, img.naturalHeight))
+  const canvas = document.createElement("canvas")
+  canvas.width = Math.round(img.naturalWidth * scale)
+  canvas.height = Math.round(img.naturalHeight * scale)
+  canvas.getContext("2d")!.drawImage(img, 0, 0, canvas.width, canvas.height)
+  const webp = canvas.toDataURL("image/webp", 0.72)
+  return webp.startsWith("data:image/webp") ? webp : canvas.toDataURL("image/jpeg", 0.72)
+}

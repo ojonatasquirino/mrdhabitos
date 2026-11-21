@@ -112,7 +112,7 @@ export default function ProfilePage() {
         <span className="min-w-0 flex-1">
           <span className="block text-sm font-semibold">Quadro de visão</span>
           <span className="block text-xs leading-relaxed text-muted-foreground">
-            Fotos e frases do futuro que você quer. Adiciona a aba Visão na barra.
+            Fotos do futuro que você quer. Adiciona a aba Visão na barra.
           </span>
         </span>
         <input
