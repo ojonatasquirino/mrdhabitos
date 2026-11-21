@@ -12,7 +12,7 @@ import {
   CircleCheck,
   Flag,
   Flame,
-  Images,
+  Telescope,
   GripVertical,
   HelpCircle,
   Lightbulb,
@@ -257,7 +257,7 @@ const SECTIONS: Section[] = [
   },
   {
     id: "visao",
-    icon: Images,
+    icon: Telescope,
     title: "Bônus: Quadro de visão",
     summary: "Fotos e frases do futuro que você está construindo",
     body: (

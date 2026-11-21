@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
-import { ArrowLeft, BookOpen, Camera, ChevronRight, Images, LogOut, Moon, Sun, Trash2 } from "lucide-react"
+import { ArrowLeft, BookOpen, Camera, ChevronRight, Telescope, LogOut, Moon, Sun, Trash2 } from "lucide-react"
 import { AppShell, IconButton, PageHeader } from "@/components/app-shell"
 import { Avatar, imageToAvatar } from "@/components/avatar"
 import { Button } from "@/components/ui/button"
@@ -107,7 +107,7 @@ export default function ProfilePage() {
 
       <label className="mt-8 flex items-center gap-4 rounded-3xl border border-border p-5">
         <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-muted">
-          <Images className="h-5 w-5" />
+          <Telescope className="h-5 w-5" />
         </span>
         <span className="min-w-0 flex-1">
           <span className="block text-sm font-semibold">Quadro de visão</span>

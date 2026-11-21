@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
-import { BarChart3, Flag, Home, Images, Plus } from "lucide-react"
+import { BarChart3, Flag, Home, Telescope, Plus } from "lucide-react"
 import { useHabits } from "@/hooks/use-habits"
 import { cn } from "@/lib/utils"
 import { DesktopSidebar } from "@/components/desktop-sidebar"
@@ -19,7 +19,7 @@ const BASE_TABS = [
   { href: "/projetos", label: "Projetos", Icon: Flag },
   { href: "/analise", label: "Análise", Icon: BarChart3 },
 ]
-const VISION_TAB = { href: "/visao", label: "Visão", Icon: Images }
+const VISION_TAB = { href: "/visao", label: "Visão", Icon: Telescope }
 
 /** abas da barra: "Visão" entra como 3ª quando o quadro de visão está ligado */
 function useTabs() {
