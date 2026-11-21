@@ -6,7 +6,14 @@ import Link from "next/link"
 import { ArrowLeft, BookOpen, Camera, ChevronRight, Telescope, LogOut, Moon, Sun, Trash2 } from "lucide-react"
 import { AppShell, IconButton, PageHeader } from "@/components/app-shell"
 import { Avatar, imageToAvatar } from "@/components/avatar"
+import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Field, FieldLabel } from "@/components/ui/field"
+import { Item, ItemActions, ItemContent, ItemDescription, ItemMedia, ItemTitle } from "@/components/ui/item"
+import { Separator } from "@/components/ui/separator"
+import { Switch } from "@/components/ui/switch"
+import { ConfirmDialog } from "@/components/confirm-dialog"
 import { useAuth } from "@/hooks/use-auth"
 import { useHabits } from "@/hooks/use-habits"
 import { useTheme } from "@/hooks/use-theme"
@@ -18,7 +25,7 @@ export default function ProfilePage() {
   const { theme, toggle } = useTheme()
   const [name, setName] = useState("")
   const [photo, setPhoto] = useState<string | undefined>()
-  const [msg, setMsg] = useState("")
+  const [confirmOut, setConfirmOut] = useState(false)
   const fileRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
@@ -65,9 +72,8 @@ export default function ProfilePage() {
             if (!file) return
             try {
               setPhoto(await imageToAvatar(file))
-              setMsg("")
             } catch {
-              setMsg("Não consegui ler essa imagem. Tente outra.")
+              toast.error("Não consegui ler essa imagem. Tente outra.")
             }
           }}
         />
@@ -82,76 +88,106 @@ export default function ProfilePage() {
         )}
       </section>
 
-      <label className="mt-8 block">
-        <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Nome ou apelido</span>
-        <input
+      <Field className="mt-8">
+        <FieldLabel htmlFor="nome">Nome ou apelido</FieldLabel>
+        <Input
+          id="nome"
           value={name}
           onChange={(e) => setName(e.target.value)}
           maxLength={30}
           placeholder={fallbackName ?? "Como quer ser chamado?"}
-          className="mt-2 w-full rounded-2xl bg-muted px-4 py-4 text-lg font-medium outline-none placeholder:text-muted-foreground/60 focus:ring-2 focus:ring-foreground/10"
+          className="h-12 rounded-2xl text-base"
         />
-      </label>
+      </Field>
 
       <Button
         disabled={!dirty}
         className="mt-4 h-12 w-full rounded-2xl text-base"
         onClick={() => {
           setProfile({ ...profile, name, photo })
-          setMsg("Perfil salvo.")
+          toast.success("Perfil salvo.")
         }}
       >
         Salvar
       </Button>
-      {msg && <p className="mt-3 text-center text-sm text-muted-foreground">{msg}</p>}
 
-      <label className="mt-8 flex items-center gap-4 rounded-3xl border border-border p-5">
-        <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-muted">
-          <Telescope className="h-5 w-5" />
-        </span>
-        <span className="min-w-0 flex-1">
-          <span className="block text-sm font-semibold">Quadro de visão</span>
-          <span className="block text-xs leading-relaxed text-muted-foreground">
-            Fotos do futuro que você quer. Adiciona a aba Visão na barra.
-          </span>
-        </span>
-        <input
-          type="checkbox"
-          role="switch"
-          checked={!!profile.visionEnabled}
-          onChange={(e) => setProfile({ ...profile, visionEnabled: e.target.checked })}
-          className="h-6 w-6 shrink-0 accent-foreground"
-        />
-      </label>
+      <div className="mt-8 overflow-hidden rounded-3xl border">
+        <Item className="rounded-none px-5">
+          <ItemMedia>
+            <Telescope className="size-5" />
+          </ItemMedia>
+          <ItemContent>
+            <ItemTitle>Quadro de visão</ItemTitle>
+            <ItemDescription>Fotos do futuro que você quer. Adiciona a aba Visão na barra.</ItemDescription>
+          </ItemContent>
+          <ItemActions>
+            <Switch
+              aria-label="Quadro de visão"
+              checked={!!profile.visionEnabled}
+              onCheckedChange={(v) => setProfile({ ...profile, visionEnabled: v })}
+            />
+          </ItemActions>
+        </Item>
+        <Separator />
+        <Item className="rounded-none px-5">
+          <ItemMedia>{theme === "dark" ? <Moon className="size-5" /> : <Sun className="size-5" />}</ItemMedia>
+          <ItemContent>
+            <ItemTitle>Tema escuro</ItemTitle>
+          </ItemContent>
+          <ItemActions>
+            <Switch aria-label="Tema escuro" checked={theme === "dark"} onCheckedChange={toggle} />
+          </ItemActions>
+        </Item>
+      </div>
 
-      <div className="mt-4 divide-y divide-border overflow-hidden rounded-3xl border border-border">
-        <Link href="/guia" className="flex w-full items-center gap-3 px-5 py-4 text-left">
-          <BookOpen className="h-5 w-5" />
-          <span className="flex-1 text-sm font-medium">Guia de uso</span>
-          <ChevronRight className="h-4 w-4 text-muted-foreground" />
-        </Link>
-        <button type="button" onClick={toggle} className="flex w-full items-center gap-3 px-5 py-4 text-left">
-          {theme === "dark" ? <Moon className="h-5 w-5" /> : <Sun className="h-5 w-5" />}
-          <span className="flex-1 text-sm font-medium">Tema</span>
-          <span className="text-sm text-muted-foreground">{theme === "dark" ? "Escuro" : "Claro"}</span>
-        </button>
+      <div className="mt-4 overflow-hidden rounded-3xl border">
+        <Item asChild className="rounded-none px-5">
+          <Link href="/guia">
+            <ItemMedia>
+              <BookOpen className="size-5" />
+            </ItemMedia>
+            <ItemContent>
+              <ItemTitle>Guia de uso</ItemTitle>
+            </ItemContent>
+            <ChevronRight className="size-4 text-muted-foreground" />
+          </Link>
+        </Item>
         {user?.email && (
-          <div className="flex items-center gap-3 px-5 py-4">
-            <span className="flex-1 text-sm font-medium">Conta</span>
-            <span className="truncate text-sm text-muted-foreground">{user.email}</span>
-          </div>
+          <>
+            <Separator />
+            <Item className="rounded-none px-5">
+              <ItemContent>
+                <ItemTitle>Conta</ItemTitle>
+              </ItemContent>
+              <span className="truncate text-sm text-muted-foreground">{user.email}</span>
+            </Item>
+          </>
         )}
         {authEnabled && user && (
-          <button
-            type="button"
-            onClick={() => logout()}
-            className="flex w-full items-center gap-3 px-5 py-4 text-left text-red-500"
-          >
-            <LogOut className="h-5 w-5" />
-            <span className="text-sm font-medium">Sair da conta</span>
-          </button>
+          <>
+            <Separator />
+            <Item asChild className="rounded-none px-5 text-destructive">
+              <button type="button" onClick={() => setConfirmOut(true)}>
+                <ItemMedia>
+                  <LogOut className="size-5" />
+                </ItemMedia>
+                <ItemContent>
+                  <ItemTitle>Sair da conta</ItemTitle>
+                </ItemContent>
+              </button>
+            </Item>
+          </>
         )}
       </div>
+
+      <ConfirmDialog
+        open={confirmOut}
+        onOpenChange={setConfirmOut}
+        title="Sair da conta?"
+        description="Seus dados continuam salvos na nuvem. É só entrar de novo para ver tudo."
+        confirm="Sair"
+        onConfirm={() => logout()}
+      />
     </AppShell>
   )
 }

@@ -10,6 +10,7 @@ import { AuthGate } from "@/components/auth-gate"
 import { ServiceWorkerRegister } from "@/components/sw-register"
 import { Splash } from "@/components/splash"
 import { THEME_SCRIPT } from "@/hooks/use-theme"
+import { Toaster } from "@/components/ui/sonner"
 import "./globals.css"
 
 export const metadata: Metadata = {
@@ -44,7 +45,10 @@ export default function RootLayout({
         <Splash />
         <Suspense fallback={null}><AuthProvider>
             <AuthGate>
-              <HabitsProvider>{children}</HabitsProvider>
+              <HabitsProvider>
+                {children}
+                <Toaster position="top-center" />
+              </HabitsProvider>
             </AuthGate>
           </AuthProvider>
         </Suspense>

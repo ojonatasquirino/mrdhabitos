@@ -1,7 +1,9 @@
 "use client"
 
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog"
+import { Drawer, DrawerContent, DrawerTitle } from "@/components/ui/drawer"
+
 import { useEffect, useState } from "react"
-import { createPortal } from "react-dom"
 import { cn } from "@/lib/utils"
 
 export function IconButton({
@@ -20,6 +22,10 @@ export function IconButton({
   )
 }
 
+/**
+ * Painel de ações: Drawer (vaul) no celular, que fecha puxando para baixo,
+ * e Dialog centralizado no desktop. Mesma API de antes (open, onClose).
+ */
 export function BottomSheet({
   open,
   onClose,
@@ -29,23 +35,34 @@ export function BottomSheet({
   onClose: () => void
   children: React.ReactNode
 }) {
-  const [mounted, setMounted] = useState(false)
-  useEffect(() => setMounted(true), [])
-  if (!open || !mounted) return null
-
-  // Portal no <body>: fica acima da barra de navegação e de qualquer animação da página
-  return createPortal(
-    <div className="fixed inset-0 z-[60] flex items-end justify-center lg:items-center lg:p-6" role="dialog" aria-modal="true">
-      <button
-        aria-label="Fechar"
-        className="absolute inset-0 bg-black/40 animate-in fade-in duration-200"
-        onClick={onClose}
-      />
-      <div className="safe-bottom relative max-h-[90dvh] w-full max-w-md overflow-y-auto rounded-t-3xl bg-card px-5 pt-3 shadow-2xl animate-in slide-in-from-bottom duration-300 lg:rounded-3xl lg:px-6 lg:pt-6 lg:pb-4 lg:zoom-in-95 lg:slide-in-from-bottom-4">
-        <div className="mx-auto mb-4 h-1.5 w-10 rounded-full bg-border lg:hidden" />
-        {children}
-      </div>
-    </div>,
-    document.body,
+  const desktop = useIsDesktop()
+  if (desktop)
+    return (
+      <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
+        <DialogContent className="max-h-[90dvh] overflow-y-auto rounded-3xl sm:max-w-md" showCloseButton={false}>
+          <DialogTitle className="sr-only">Painel</DialogTitle>
+          {children}
+        </DialogContent>
+      </Dialog>
+    )
+  return (
+    <Drawer open={open} onOpenChange={(o) => !o && onClose()}>
+      <DrawerContent className="max-h-[92dvh] rounded-t-3xl">
+        <DrawerTitle className="sr-only">Painel</DrawerTitle>
+        <div className="safe-bottom mx-auto w-full max-w-md overflow-y-auto px-5 pt-2">{children}</div>
+      </DrawerContent>
+    </Drawer>
   )
+}
+
+function useIsDesktop() {
+  const [desktop, setDesktop] = useState(false)
+  useEffect(() => {
+    const mq = window.matchMedia("(min-width: 1024px)")
+    const on = () => setDesktop(mq.matches)
+    on()
+    mq.addEventListener("change", on)
+    return () => mq.removeEventListener("change", on)
+  }, [])
+  return desktop
 }

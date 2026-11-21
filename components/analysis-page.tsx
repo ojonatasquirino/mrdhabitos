@@ -5,6 +5,7 @@ import Link from "next/link"
 import { Area, AreaChart, Bar, BarChart, CartesianGrid, Cell, ComposedChart, ReferenceLine, XAxis, YAxis } from "recharts"
 import { Trash2 } from "lucide-react"
 import { BottomSheet } from "@/components/ui-kit"
+import { ConfirmDialog } from "@/components/confirm-dialog"
 import { useHabits } from "@/hooks/use-habits"
 import { DEFAULT_SLEEP_GOAL, formatDiff, formatHours } from "@/components/sleep"
 import { AppShell, PageHeader } from "@/components/app-shell"
@@ -296,6 +297,7 @@ function noteDate(key: string) {
 function Journal({ notes }: { notes: Record<string, string> }) {
   const { setNote } = useHabits()
   const [all, setAll] = useState(false)
+  const [toDelete, setToDelete] = useState<string | null>(null)
   const entries = Object.entries(notes).sort(([a], [b]) => (a < b ? 1 : -1))
   if (!entries.length) return null
 
@@ -334,7 +336,7 @@ function Journal({ notes }: { notes: Record<string, string> }) {
               <button
                 type="button"
                 aria-label="Apagar nota"
-                onClick={() => setNote(key, "")}
+                onClick={() => setToDelete(key)}
                 className="pressable flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-muted-foreground hover:bg-muted hover:text-red-500"
               >
                 <Trash2 className="h-4 w-4" />
@@ -343,6 +345,17 @@ function Journal({ notes }: { notes: Record<string, string> }) {
           ))}
         </ol>
       </BottomSheet>
+      <ConfirmDialog
+        open={!!toDelete}
+        onOpenChange={(o) => !o && setToDelete(null)}
+        title="Apagar esta nota?"
+        description={toDelete ? `A nota de ${noteDate(toDelete)} será apagada. Não dá para desfazer.` : ""}
+        confirm="Apagar"
+        onConfirm={() => {
+          if (toDelete) setNote(toDelete, "")
+          setToDelete(null)
+        }}
+      />
     </ChartCard>
   )
 }

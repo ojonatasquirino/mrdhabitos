@@ -3,6 +3,7 @@
 import Link from "next/link"
 import { BarChart3, Flag, Home, Telescope, Moon, Plus, Sun } from "lucide-react"
 import { Avatar } from "@/components/avatar"
+import { CommandMenu } from "@/components/command-menu"
 import { ReminderButton } from "@/components/reminder-button"
 import { HelpButton } from "@/components/help-button"
 import { useAuth } from "@/hooks/use-auth"
@@ -52,6 +53,8 @@ export function DesktopSidebar({ pathname }: { pathname: string }) {
         <Plus className="h-4 w-4" />
         Novo hábito
       </Link>
+
+      <CommandMenu />
 
       <nav className="space-y-1">
         {link("/", "Hoje", Home)}
