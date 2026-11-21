@@ -71,6 +71,11 @@ export function Onboarding({
       visual: <HeatVisual />,
     },
     {
+      title: "Bônus: visualize o futuro",
+      body: "Ligue o Quadro de visão no Perfil e monte um mural com fotos e frases do que você está construindo: família, casa, conquistas. É opcional.",
+      visual: <VisionVisual />,
+    },
+    {
       title: "Deixe tudo no jeito",
       body: "Adicione o MRD à tela de início e ative o lembrete diário no sino. Dúvidas? Toque no ícone de interrogação, no topo.",
       visual: <SetupVisual />,
@@ -285,6 +290,30 @@ function HeatVisual() {
           style={{ animationDelay: `${n * 25}ms` }}
         />
       ))}
+    </div>
+  )
+}
+
+function VisionVisual() {
+  const tiles = [
+    "from-sky-400 to-blue-600 col-span-2 row-span-2",
+    "from-amber-300 to-orange-500",
+    "from-emerald-300 to-green-600",
+    "from-rose-300 to-pink-500 col-span-2",
+    "from-violet-300 to-indigo-500",
+  ]
+  return (
+    <div className="grid w-full max-w-xs grid-cols-3 grid-rows-3 gap-2" style={{ height: 200 }}>
+      {tiles.map((t, n) => (
+        <span
+          key={n}
+          className={cn("rounded-2xl bg-gradient-to-br shadow-sm animate-in zoom-in-90 fill-mode-both duration-500", t)}
+          style={{ animationDelay: `${n * 80}ms` }}
+        />
+      ))}
+      <span className="col-span-1 flex items-center justify-center rounded-2xl border border-dashed border-border font-serif text-sm italic text-muted-foreground">
+        2028
+      </span>
     </div>
   )
 }

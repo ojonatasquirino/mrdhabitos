@@ -12,6 +12,7 @@ import {
   CircleCheck,
   Flag,
   Flame,
+  Telescope,
   GripVertical,
   HelpCircle,
   Lightbulb,
@@ -250,6 +251,38 @@ const SECTIONS: Section[] = [
           <li>
             No máximo <b>3 projetos ativos</b> ao mesmo tempo. Poucos e constantes vencem muitos pela metade.
           </li>
+        </ul>
+      </>
+    ),
+  },
+  {
+    id: "visao",
+    icon: Telescope,
+    title: "Bônus: Quadro de visão",
+    summary: "Fotos e frases do futuro que você está construindo",
+    body: (
+      <>
+        <p>
+          Os hábitos são o caminho, os projetos são o destino e o quadro de visão é o <b>porquê</b>. Ele é opcional: ligue
+          em <b>Perfil &gt; Quadro de visão</b> e a aba <b>Visão</b> aparece na barra.
+        </p>
+        <ul>
+          <li>
+            <b>Imagem</b> adiciona fotos (família, setup, lugares, conquistas). Elas entram com cantos arredondados e
+            são comprimidas no aparelho, sem perder qualidade visível.
+          </li>
+          <li>Arraste para mover. Puxe a bolinha do canto para aumentar ou diminuir: a proporção da foto se mantém.</li>
+          <li>Arraste o fundo para navegar e use dois dedos (ou Ctrl + rolagem no computador) para dar zoom.</li>
+          <li>
+            <b>Texto</b> cria uma frase solta. Com uma foto selecionada, <b>Texto abaixo</b> cria a legenda. Escolha a
+            fonte (Sans, Serif, Mono, Manuscrita), o tamanho, negrito e itálico. Toque duas vezes para editar.
+          </li>
+          <li>O balão adiciona um comentário à foto, que aparece ao tocar nela.</li>
+          <li>Também dá para trazer para frente, mandar para trás, duplicar e apagar.</li>
+          <li>
+            <b>Apresentar</b> mostra o quadro em tela cheia, sem botões. O ícone de enquadrar centraliza tudo.
+          </li>
+          <li>Só você vê o seu quadro. Ele fica salvo na sua conta e aparece em todos os seus aparelhos.</li>
         </ul>
       </>
     ),

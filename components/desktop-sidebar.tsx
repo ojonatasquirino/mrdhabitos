@@ -1,7 +1,7 @@
 "use client"
 
 import Link from "next/link"
-import { BarChart3, Flag, Home, Moon, Plus, Sun } from "lucide-react"
+import { BarChart3, Flag, Home, Telescope, Moon, Plus, Sun } from "lucide-react"
 import { Avatar } from "@/components/avatar"
 import { ReminderButton } from "@/components/reminder-button"
 import { HelpButton } from "@/components/help-button"
@@ -56,6 +56,7 @@ export function DesktopSidebar({ pathname }: { pathname: string }) {
       <nav className="space-y-1">
         {link("/", "Hoje", Home)}
         {link("/projetos", "Projetos", Flag)}
+        {profile.visionEnabled && link("/visao", "Visão", Telescope)}
         {link("/analise", "Análise", BarChart3)}
       </nav>
 
